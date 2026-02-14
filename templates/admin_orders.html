@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}إدارة الطلبات{% endblock %}
+
+{% block content %}
+<style>
+    /* 1. التحكم في مكان ظهور المودال (أسفل الهيدر) */
+    .modal.fade .modal-dialog {
+        transform: translate(0, -50px);
+        transition: transform 0.3s ease-out;
+    }
+    .modal.show .modal-dialog {
+        transform: none;
+        margin-top: 70px; /* يظهر أسفل الهيدر */
+    }
+
+    /* ألوان شريط الحالة */
+    .status-badge-pending { background-color: #ffc107; color: #000; }
+    .status-badge-processing { background-color: #0d6efd; color: #fff; }
+    .status-badge-delivered { background-color: #198754; color: #fff; }
+    .status-badge-cancelled { background-color: #dc3545; color: #fff; }
+    
+    .table-responsive { border-radius: 15px; overflow: hidden; }
+    .btn-sm { padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 500; }
+</style>
+
+<div class="container py-5" dir="rtl">
+    <h2 class="mb-5 text-center fw-bold">📦 لوحة إدارة طلبات العملاء</h2>
+
+    <div class="table-responsive shadow-sm rounded-4">
+        <table class="table table-hover table-bordered text-center align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>رقم الطلب</th>
+                    <th>الزبون</th>
+                    <th>الإجمالي</th>
+                    <th>حالة الطلب</th>
+                    <th>التاريخ</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class="fw-bold">#{{ order.id }}</td>
+                    <td>
+                        {% if order.user %}
+                            {{ order.user.get_full_name|default:order.user.username }}
+                        {% else %}
+                            {{ order.first_name }} {{ order.last_name }} <span class="badge bg-secondary small">زبون</span>
+                        {% endif %}
+                    </td>
+                    <td class="fw-bold text-primary">{{ order.total|floatformat:0 }} د.ل</td>
+                    <td>
+                        <span class="badge rounded-pill px-3 py-2 status-badge-{{ order.status|lower }}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="small">{{ order.created_at|date:"d-m-Y H:i" }}</td>
+                    <td>
+                        <div class="d-flex justify-content-center gap-1">
+                            
+                            {% if order.status == 'PENDING' %}
+                            <form method="POST" action="{% url 'admin_change_order_status' group_id=order.id new_status='PROCESSING' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-primary">⏳ تجهيز</button>
+                            </form>
+                            {% endif %}
+                            
+                            {% if order.status == 'PROCESSING' %}
+                            <form method="POST" action="{% url 'admin_change_order_status' group_id=order.id new_status='DELIVERED' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">✅ تسليم</button>
+                            </form>
+                            {% endif %}
+
+                            {% if order.status != 'CANCELLED' and order.status != 'DELIVERED' %}
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    data-bs-toggle="modal" data-bs-target="#adminCancelModal-{{ order.id }}">
+                                ❌ إلغاء
+                            </button>
+                            {% endif %}
+                            
+                            <button class="btn btn-sm btn-info text-white view-details-btn"
+                                    data-order-id="{{ order.id }}"
+                                    data-bs-toggle="modal" data-bs-target="#orderDetailsModal">
+                                <i class="bi bi-eye"></i> عرض
+                            </button>
+
+                                     <a href="{% url 'myorder' %}?phone={{ order.phone_number }}&token={{ order.secure_token }}&order_id={{ order.id }}" 
+   target="_blank" class="btn btn-sm btn-light border" title="فتح هذا الطلب بالتحديد">
+   🔗
+</a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-muted py-5">لا توجد طلبات في النظام حالياً.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# مودال الإلغاء لكل طلب #}
+{% for order in orders %}
+<div class="modal fade" id="adminCancelModal-{{ order.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0">
+            <form method="POST" action="{% url 'admin_change_order_status' group_id=order.id new_status='CANCELLED' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-danger text-white border-0 py-2">
+                    <h6 class="modal-title">إلغاء طلب رقم #{{ order.id }}</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <label class="mb-2 fw-bold small">سبب الإلغاء:</label>
+                    <textarea class="form-control rounded-3" name="cancellation_reason" rows="3" required placeholder="اكتب السبب هنا..."></textarea>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">تراجع</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">تأكيد الإلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{# مودال عرض التفاصيل المحسن #}
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom bg-light py-2">
+                <h6 class="fw-bold mb-0">تفاصيل الطلب الكاملة</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="details-content">
+                </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+<script>
+    $(document).ready(function() {
+        $('.view-details-btn').on('click', function() {
+            var orderId = $(this).data('order-id');
+            var url = `/admin/orders/details/${orderId}/`; 
+
+            $('#details-content').html(
+                '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 small text-muted">جاري تحميل البيانات...</p></div>'
+            );
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(response) {
+                    $('#details-content').html(response);
+                },
+                error: function() {
+                    $('#details-content').html('<div class="alert alert-danger m-3">حدث خطأ أثناء تحميل التفاصيل.</div>');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

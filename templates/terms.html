@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}الشروط والأحكام - VAIDOX Tools{% endblock %}
+
+{% block content %}
+<style>
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    /* رأس الصفحة */
+    .terms-header {
+        background: linear-gradient(135deg, #0056b3 0%, #003d7a 100%);
+        color: white;
+        padding: 60px 0;
+        border-radius: 0 0 50px 50px;
+        margin-bottom: -50px;
+        text-align: center;
+    }
+
+    /* حاوية المحتوى */
+    .terms-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* كروت الشروط */
+    .terms-card {
+        background: white;
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        padding: 40px;
+        margin-bottom: 30px;
+    }
+
+    .section-title {
+        color: #0056b3;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+    }
+
+    .section-title i {
+        font-size: 1.5rem;
+        background: #eef5ff;
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .terms-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .terms-list li {
+        position: relative;
+        padding-right: 25px;
+        margin-bottom: 15px;
+        line-height: 1.8;
+        color: #444;
+    }
+
+    .terms-list li::before {
+        content: "\F272"; /* bootstrap icon check */
+        font-family: "bootstrap-icons";
+        position: absolute;
+        right: 0;
+        color: #198754;
+        font-weight: bold;
+    }
+
+    .contact-badge {
+        background: #fdf8e4;
+        border: 1px dashed #ffc107;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+    }
+
+    .footer-note {
+        font-size: 0.9rem;
+        color: #777;
+        text-align: center;
+        margin-top: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .terms-card { padding: 25px 15px; }
+        .terms-header { padding: 40px 0; }
+    }
+</style>
+
+<div class="terms-header shadow-sm">
+    <div class="container">
+        <h1 class="fw-bold mb-2"><i class="bi bi-file-earmark-text me-2"></i> الشروط والأحكام</h1>
+        <p class="opacity-75">مرحباً بكم في VAIDOX Tools - مرجعكم الأول للمعدات</p>
+    </div>
+</div>
+
+<div class="container terms-container" dir="rtl">
+    <div class="terms-card">
+        
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-display text-primary"></i> 1. استخدام الموقع</h4>
+            <ul class="terms-list">
+                <li>الموقع مخصص لعرض وبيع المعدات والأدوات الصناعية والزراعية.</li>
+                <li>باستخدامك للموقع، أنت تقر بأنك تستخدمه بشكل قانوني وبدون أي إساءة برمجية أو تجارية.</li>
+                <li>يحق لإدارة VAIDOX Tools إيقاف أي استخدام مخالف دون سابق إنذار.</li>
+            </ul>
+        </div>
+
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-tools text-secondary"></i> 2. المنتجات</h4>
+            <ul class="terms-list">
+                <li>جميع المنتجات المعروضة مخصصة للسوق الليبي.</li>
+                <li>نسعى لعرض صور ومواصفات دقيقة، وقد توجد فروقات بسيطة في الشكل أو اللون نتيجة إضاءة التصوير أو تحديثات المصنع.</li>
+                <li>توفر المنتجات يخضع لحالة المخزون المتغيرة.</li>
+            </ul>
+        </div>
+
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-cash-stack text-success"></i> 3. الأسعار</h4>
+            <ul class="terms-list">
+                <li>جميع الأسعار المعروضة بالدينار الليبي (د.ل).</li>
+                <li>يحق لنا تعديل الأسعار في أي وقت لمواكبة تقلبات السوق.</li>
+                <li>السعر النهائي للطلبية يتم تأكيده عند التواصل المباشر مع الزبون.</li>
+            </ul>
+        </div>
+
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-cart-check text-info"></i> 4. الطلبات</h4>
+            <ul class="terms-list">
+                <li>يتم تأكيد الطلبات عبر التواصل المباشر (هاتف، واتساب، أو فيسبوك).</li>
+                <li>يحق لنا إلغاء أي طلب في حال عدم توفر المنتج أو وجود خطأ تقني في السعر المعروض.</li>
+            </ul>
+        </div>
+
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-truck text-warning"></i> 5. التوصيل</h4>
+            <ul class="terms-list">
+                <li>خدمة التوصيل تغطي كافة المدن داخل ليبيا فقط.</li>
+                <li>مدة التوصيل تقديرية وتختلف حسب المدينة والظروف الأمنية أو الجوية.</li>
+                <li>نحن غير مسؤولين عن التأخير الناتج عن شركات الشحن الخارجية أو الظروف القاهرة.</li>
+            </ul>
+        </div>
+
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-arrow-left-right text-danger"></i> 6. الاستبدال والاسترجاع</h4>
+            <ul class="terms-list">
+                <li>يمكن الاستبدال أو الإرجاع خلال 3 أيام من تاريخ استلام الشحنة.</li>
+                <li>يشترط أن يكون المنتج بحالته الأصلية، داخل تغليفه المصنعي، وغير مستخدم نهائياً.</li>
+                <li>المعدات التي يتم تشغيلها (مثل المحركات أو المولدات) لا تشملها سياسة الاسترجاع بعد الاستخدام.</li>
+            </ul>
+        </div>
+
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-shield-check text-primary"></i> 7. الضمان</h4>
+            <ul class="terms-list">
+                <li>بعض المنتجات تشمل ضماناً مصنعياً محدداً يُذكر في وصف المنتج.</li>
+                <li>الضمان لا يغطي حالات سوء الاستخدام، الكسر، التوصيل الكهربائي الخاطئ، أو الإهمال في الصيانة.</li>
+            </ul>
+        </div>
+
+        <div class="mb-5">
+            <h4 class="section-title"><i class="bi bi-lock text-dark"></i> 8. الخصوصية</h4>
+            <ul class="terms-list">
+                <li>نلتزم بأقصى درجات السرية في التعامل مع بيانات العملاء.</li>
+                <li>تُستخدم البيانات (الاسم، الهاتف، العنوان) لغرض تنفيذ الطلبات والتواصل فقط.</li>
+                <li>لا يتم مشاركة بياناتك مع أي طرف ثالث لأغراض تسويقية.</li>
+            </ul>
+        </div>
+
+        <div class="mt-4">
+            <h4 class="section-title"><i class="bi bi-headset"></i> 10. التواصل والدعم</h4>
+            
+            <h5 class="fw-bold mt-3 mb-3" style="color:#e53935;">تواصل معنا فوراً</h5>
+            
+            <div class="d-flex flex-wrap gap-2">
+                <a href="https://www.facebook.com/vaidox.1" target="_blank" class="btn btn-primary rounded-pill px-4 d-flex align-items-center">
+                    <i class="bi bi-facebook me-2"></i> فيسبوك
+                </a>
+                
+                <a href="https://wa.me/218942950095" target="_blank" class="btn btn-success rounded-pill px-4 d-flex align-items-center">
+                    <i class="bi bi-whatsapp me-2"></i> واتساب طرابلس
+                </a>
+                
+                <a href="https://wa.me/218942940095" target="_blank" class="btn btn-outline-success rounded-pill px-4 d-flex align-items-center" style="border-width: 2px; font-weight: 600;">
+                    <i class="bi bi-whatsapp me-2"></i> واتساب بنغازي
+                </a>
+            </div>
+
+            <div class="mt-4 p-3 bg-light rounded-4">
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    فريق الدعم الفني متواجد لمساعدتكم في اختيار المعدات المناسبة والإجابة على استفساراتكم بخصوص الصيانة والضمان.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        <p>آخر تحديث لهذه الشروط: فبراير 2026</p>
+        <p>&copy; 2026 VAIDOX Tools. جميع الحقوق محفوظة.</p>
+    </div>
+</div>
+{% endblock %}

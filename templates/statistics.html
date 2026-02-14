@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}لوحة الإحصائيات الشاملة{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<style>
+    .stat-box { border-radius: 15px; transition: 0.3s; border-left: 6px solid; min-height: 120px; background-color: #fff; }
+    .stat-box:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
+    .border-success { border-left-color: #198754 !important; } /* تم التسليم */
+    .border-primary { border-left-color: #0d6efd !important; } /* تجهيز */
+    .border-warning { border-left-color: #ffc107 !important; } /* انتظار */
+    .border-danger { border-left-color: #dc3545 !important; }  /* ملغي */
+    .border-info { border-left-color: #0dcaf0 !important; }    /* الزوار */
+</style>
+
+<div class="container py-5" dir="rtl text-end">
+    <h2 class="mb-5 text-center fw-bold">📊 لوحة الرقابة والإحصائيات</h2>
+
+    <div class="row g-4 mb-5 text-end">
+        <div class="col-md-3">
+            <div class="card shadow p-3 stat-box border-success">
+                <p class="text-secondary mb-1 small fw-bold text-end">💰 إجمالي المبيعات</p>
+                <h2 class="text-success text-end">{{ total_revenue|floatformat:0 }} <span class="fs-6 text-muted">د.ل</span></h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow p-3 stat-box border-info">
+                <p class="text-secondary mb-1 small fw-bold text-end">👀 زوار المتجر</p>
+                <h2 class="text-info text-end">{{ visits_count }} <span class="fs-6 text-muted">زيارة</span></h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow p-3 stat-box border-warning">
+                <p class="text-secondary mb-1 small fw-bold text-end">📦 إجمالي الطلبات</p>
+                <h2 class="text-warning text-end">{{ total_orders }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow p-3 stat-box border-danger">
+                <p class="text-secondary mb-1 small fw-bold text-end">❌ طلبات ملغاة</p>
+                <h2 class="text-danger text-end">{{ cancelled_orders.count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card shadow border-0 rounded-4 h-100">
+                <div class="card-header bg-white fw-bold py-3 border-bottom-0">توزيع الحالات (بالألوان المطلوبة)</div>
+                <div class="card-body">
+                    <canvas id="orderStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow border-0 rounded-4 h-100">
+                <div class="card-header bg-white fw-bold py-3 border-bottom-0">الأكثر مبيعاً</div>
+                <div class="card-body">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-danger text-white fw-bold py-3 text-end">
+            📉 سجل آخر 5 طلبات ملغاة وأسبابها
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover text-center align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>اسم الزبون</th>
+                        <th class="text-end px-4">سبب الإلغاء</th>
+                        <th>تاريخ الطلب</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in cancelled_orders %}
+                    <tr>
+                        <td class="fw-bold">#{{ order.id }}</td>
+                        <td>{{ order.first_name }} {{ order.last_name }}</td>
+                        <td class="text-end px-4">
+                            <span class="badge bg-danger-subtle text-danger p-2 rounded-3 fw-normal">
+                                {{ order.cancellation_reason|default:"لم يتم ذكر السبب" }}
+                            </span>
+                        </td>
+                        <td class="small text-muted">{{ order.created_at|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="py-5 text-muted">لا توجد طلبات ملغاة في النظام حالياً.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusData = {{ status_counts|safe }};
+    const pNames = {{ product_names_for_chart|safe }};
+    const pSales = {{ product_sales_for_chart|safe }};
+
+    // 1. رسم المخطط الدائري بالألوان المطلوبة
+    const ctx1 = document.getElementById('orderStatusChart');
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusData), // انتظار، تجهيز، تم التسليم، ملغي
+            datasets: [{
+                data: Object.values(statusData),
+                backgroundColor: [
+                    '#ffc107', // انتظار -> أصفر
+                    '#0d6efd', // تجهيز -> أزرق
+                    '#198754', // تم التسليم -> أخضر
+                    '#dc3545'  // ملغي -> أحمر
+                ],
+                hoverOffset: 10
+            }]
+        },
+        options: { 
+            plugins: { 
+                legend: { position: 'bottom', rtl: true, labels: { boxWidth: 15, padding: 20 } } 
+            }
+        }
+    });
+
+    // 2. رسم المخطط الشريطي للمنتجات
+    const ctx2 = document.getElementById('topProductsChart');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: pNames,
+            datasets: [{
+                label: 'عدد مرات الشراء',
+                data: pSales,
+                backgroundColor: '#6610f2', // لون بنفسجي مميز
+                borderRadius: 8
+            }]
+        },
+        options: { 
+            indexAxis: 'y', 
+            scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+            plugins: { legend: { display: false } }
+        }
+    });
+});
+</script>
+{% endblock %}

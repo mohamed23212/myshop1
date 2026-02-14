@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block custom_css %}
+<style>
+    /* ===============================
+       HERO SECTION (Laptop/Desktop)
+       =============================== */
+    .hero-wrapper {
+        position: relative;
+        width: 100%;
+        height: 300px;
+        background: #000;
+        overflow: hidden;
+    }
+
+    .hero-bg {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+        object-position: center center;
+        filter: brightness(0.3);
+    }
+
+    .logo-container {
+        position: absolute;
+        top: 40%; /* رفع الشعار للأعلى */
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        text-align: center;
+        width: 100%;
+    }
+
+    .logo-container img {
+        width: 380px;
+        max-width: 80%;
+        filter: drop-shadow(0 0 25px rgba(255,255,255,0.2));
+    }
+
+    /* ===============================
+       INTRO SECTION
+       =============================== */
+    .main-intro {
+        background: #fff;
+        padding: 50px 20px;
+        text-align: center;
+        border-radius: 40px 40px 0 0;
+        margin-top: -40px;
+        position: relative;
+        z-index: 20;
+    }
+
+    /* ===============================
+       CATEGORY GRID
+       =============================== */
+    .category-grid {
+        background: #f4f4f4;
+        padding: 40px 0 80px;
+    }
+    .cat-card {
+        background: #fff;
+        border-radius: 15px;
+        overflow: hidden;
+        display: block;
+        text-decoration: none;
+        transition: 0.3s ease;
+        border: 1px solid #eee;
+        height: 100%;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .cat-card:hover { transform: translateY(-8px); border-color: #e53935; }
+    .cat-img-box { width: 100%; height: 250px; overflow: hidden; background: #000; }
+    .cat-img-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s; }
+    .cat-info { background: #ffffff; padding: 20px 10px; text-align: center; }
+    .cat-info h4 { margin: 0; color: #222; font-weight: 800; font-size: 1.25rem; }
+
+    /* ===============================
+       FOOTER (تنسيق معلومات التواصل الجديد)
+       =============================== */
+    .custom-footer {
+        background: #111;
+        color: #fff;
+        padding: 60px 0 20px;
+        direction: rtl; /* لضمان التنسيق العربي */
+    }
+    .footer-title {
+        color: #e53935;
+        font-weight: 800;
+        margin-bottom: 20px;
+        font-size: 1.2rem;
+    }
+    .footer-info-item {
+        margin-bottom: 15px;
+        font-size: 0.95rem;
+        color: #ccc;
+    }
+    .footer-info-item i {
+        color: #e53935;
+        margin-left: 10px;
+        width: 20px;
+        text-align: center;
+    }
+    .footer-info-item b {
+        color: #fff;
+        display: block;
+        margin-bottom: 3px;
+    }
+    .footer-divider {
+        border-top: 1px solid #222;
+        margin: 30px 0 20px;
+    }
+
+    /* ===============================
+       MOBILE
+       =============================== */
+    @media (max-width: 768px) {
+        .hero-wrapper { height: 300px !important; }
+        .logo-container { top: 35%; }
+        .logo-container img { width: 250px; }
+        .footer-title { text-align: center; }
+        .footer-info-item { text-align: center; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hero-wrapper">
+    <img src="{% static 'img/kk.jpg' %}" class="hero-bg">
+    <div class="logo-container">
+        <img src="{% static 'img/banner/mn1.png' %}" alt="Vaidox Logo">
+    </div>
+</section>
+
+<section class="main-intro">
+    <div class="container">
+        <h1 class="fw-bold">فايدوكس ليبيا</h1>
+        <p class="text-muted">معدات صناعية وكهربائية بجودة عالمية</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'shop' %}" class="btn btn-danger btn-lg rounded-pill px-5 fw-bold shadow">تسوق الآن 🛒</a>
+        </div>
+    </div>
+</section>
+
+<section class="category-grid">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-6 col-md-3">
+                <a href="{% url 'shop' %}?category=2" class="cat-card">
+                    <div class="cat-img-box"><img src="{% static 'img/vv.jpg' %}"></div>
+                    <div class="cat-info"><h4>أدوات كهربائية</h4></div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'shop' %}?category=7" class="cat-card">
+                    <div class="cat-img-box"><img src="{% static 'img/bfb.jpg' %}"></div>
+                    <div class="cat-info"><h4>أدوات يدوية</h4></div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'shop' %}?category=5" class="cat-card">
+                    <div class="cat-img-box"><img src="{% static 'img/bb.jpg' %}"></div>
+                    <div class="cat-info"><h4>طاقة شمسية</h4></div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'shop' %}?category=4" class="cat-card">
+                    <div class="cat-img-box"><img src="{% static 'img/ooo.jpg' %}"></div>
+                    <div class="cat-info"><h4>معدات زراعية</h4></div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="custom-footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4 mb-4 text-end">
+                <h5 class="footer-title">الوكيل الحصري لمعدات Vaidox 🔧</h5>
+                <p class="small" style="color: #888; line-height: 1.8;">
+                    نحن نسعى لتوفير أفضل المعدات الصناعية والكهربائية للسوق الليبي بأعلى معايير الجودة العالمية والضمان الحقيقي.
+                </p>
+              
+            </div>
+
+            <div class="col-md-4 mb-4 text-end">
+                <h5 class="footer-title">طرابلس والمبيعات</h5>
+                <div class="footer-info-item">
+                    <b>📍 الفرع الرئيسي:</b>
+                    <span>طريق المطار – مدخل مشروع الهضبة</span>
+                </div>
+                <div class="footer-info-item">
+                    <b>📞 هاتف:</b>
+                    <span>0942950095</span>
+                </div>
+                <div class="footer-info-item mt-3">
+                    <b>📦 مبيعات الجملة:</b>
+                    <span class="text-white fw-bold">0917988555</span>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4 text-end">
+                <h5 class="footer-title">بنغازي</h5>
+                <div class="footer-info-item">
+                    <b>📍 موقع الفرع:</b>
+                    <span>الحدائق – شارع النفق</span>
+                </div>
+                <div class="footer-info-item">
+                    <b>📞 هاتف:</b>
+                    <span>0942940095</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4 mb-2">
+    <div class="col-12 text-center">
+        <div style="background: #1a1a1a; padding: 20px; border-radius: 15px; display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px; border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            
+            <a href="{% url 'terms' %}" class="text-decoration-none fw-bold" style="color: #e53935; font-size: 0.95rem; transition: 0.3s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                <i class="fas fa-file-contract ms-1"></i> الشروط والأحكام
+            </a>
+
+            <span class="d-none d-md-inline" style="color: #444; font-size: 1.2rem;">|</span>
+
+           
+
+            <a href="https://www.facebook.com/vaidox.1" target="_blank" class="text-decoration-none shadow-sm" style="display: inline-flex; align-items: center; background: #1877F2; color: #fff; padding: 8px 18px; border-radius: 50px; transition: 0.4s; transform: scale(1);" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#145dbf'" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#1877F2'">
+                <i class="fab fa-facebook-f ms-2"></i>
+                <span style="font-size: 0.85rem; font-weight: bold;">تابعنا على فيسبوك</span>
+            </a>
+
+        </div>
+    </div>
+</div>
+        
+        <div class="footer-divider"></div>
+        
+        <div class="text-center">
+            <p class="mb-0 small" style="color: #555; letter-spacing: 1px;">© 2026 فايدوكس ليبيا - جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+</footer>
+{% endblock %}

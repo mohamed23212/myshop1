@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}متجر فايدوكس{% endblock %}
+
+{% block content %}
+<div class="container my-4 my-md-5" dir="rtl">
+
+  <div class="row align-items-center mb-4 g-3">
+    <div class="col-12 col-md-6 text-center text-md-end">
+    <h2 class="fw-bold text-dark">🛠️ المنتجات</h2>
+    </div>
+    <div class="col-12 col-md-6">
+      <form method="get" class="d-flex shadow-sm rounded-pill overflow-hidden bg-white p-1 border">
+        <input type="text" name="q" class="form-control border-0 bg-transparent px-3 shadow-none text-end" placeholder="ابحث عن منتج..." value="{{ request.GET.q }}">
+        <button type="submit" class="btn btn-danger rounded-pill px-4">بحث</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="mb-4 overflow-auto text-nowrap py-2 categories-scroll">
+    <strong class="ms-2">التصنيفات:</strong>
+    {% with current_category_id=request.GET.category|default:'' %}
+    
+    <a href="{% url 'shop' %}" class="badge rounded-pill text-decoration-none px-3 py-2 {% if not current_category_id %}bg-danger{% else %}bg-secondary{% endif %}">الكل</a>
+    
+    {# 1. أدوات كهربائية #}
+    {% for cat in categories %}
+        {% if "كهربائية" in cat.name %}
+        <a href="?category={{ cat.id }}" class="badge rounded-pill text-decoration-none px-3 py-2 ms-1 {% if cat.id|stringformat:'s' == current_category_id %}bg-danger{% else %}bg-primary{% endif %}">{{ cat.name }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {# 2. أدوات يدوية #}
+    {% for cat in categories %}
+        {% if "يدوية" in cat.name %}
+        <a href="?category={{ cat.id }}" class="badge rounded-pill text-decoration-none px-3 py-2 ms-1 {% if cat.id|stringformat:'s' == current_category_id %}bg-danger{% else %}bg-primary{% endif %}">{{ cat.name }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {# 3. باقي الفئات #}
+    {% for cat in categories %}
+        {% if "يدوية" not in cat.name and "كهربائية" not in cat.name and cat.name != "اخرى" and cat.name != "أخرى" %}
+        <a href="?category={{ cat.id }}" class="badge rounded-pill text-decoration-none px-3 py-2 ms-1 {% if cat.id|stringformat:'s' == current_category_id %}bg-danger{% else %}bg-primary{% endif %}">{{ cat.name }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {# 4. أخرى #}
+    {% for cat in categories %}
+        {% if cat.name == "اخرى" or cat.name == "أخرى" %}
+        <a href="?category={{ cat.id }}" class="badge rounded-pill text-decoration-none px-3 py-2 ms-1 {% if cat.id|stringformat:'s' == current_category_id %}bg-danger{% else %}bg-primary{% endif %}">{{ cat.name }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% endwith %}
+  </div>
+
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
+    {% if products %}
+      {% for product in products %}
+        <div class="col">
+          <div class="card h-100 shadow-sm border-0 product-card position-relative overflow-hidden">
+            {% if not product.stock or product.stock <= 0 %}
+            <div class="out-of-stock-overlay">
+                <span class="badge bg-dark px-3 py-2 shadow">نفدت الكمية ❌</span>
+            </div>
+            {% endif %}
+
+            <div class="img-container bg-light">
+                <img src="{{ product.image.url }}" class="card-img-top {% if product.stock <= 0 %}grayscale{% endif %}" alt="{{ product.name }}">
+            </div>
+            
+            <div class="card-body text-center p-2 p-md-3">
+              <h6 class="card-title text-dark fw-bold mb-1 text-truncate">{{ product.name }}</h6>
+              <p class="text-danger fw-bold small mb-2">{{ product.price|floatformat:0 }} د.ل</p>
+              
+              <button class="btn btn-sm w-100 rounded-pill fw-bold {% if product.stock > 0 %}btn-outline-danger{% else %}btn-secondary disabled{% endif %}" 
+                      data-bs-toggle="modal" data-bs-target="#productModal{{ product.id }}">
+                {% if product.stock > 0 %}عرض التفاصيل{% else %}غير متوفر{% endif %}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="productModal{{ product.id }}" tabindex="-1" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered modal-lg mx-auto p-2 modal-fix" style="max-width: 900px;">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+              <div class="modal-header border-0 position-absolute top-0 end-0 p-2" style="z-index: 10;">
+                <button type="button" class="btn-close bg-white rounded-circle p-2 shadow-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body p-0">
+                <div class="row g-0">
+                  <div class="col-12 col-md-6 bg-light d-flex align-items-center justify-content-center overflow-hidden">
+                    <img src="{{ product.image.url }}" class="img-fluid w-100 modal-main-img {% if product.stock <= 0 %}grayscale{% endif %}" alt="{{ product.name }}">
+                  </div>
+                  <div class="col-12 col-md-6 p-4 bg-white d-flex flex-column text-end">
+                      <h3 class="fw-bold text-dark mb-1">{{ product.name }}</h3>
+                      <h4 class="text-danger fw-bold mb-3">{{ product.price|floatformat:0 }} د.ل</h4>
+                      <hr>
+                      <div class="description-scroll mb-4 text-muted small">{{ product.description }}</div>
+                      <div class="mt-auto">
+                        {% if product.stock > 0 %}
+                            {% if product.video_url %}
+                            <a href="{{ product.video_url }}" target="_blank" class="btn btn-info text-white w-100 mb-2 py-2 fw-bold rounded-3">🎥 شاهد تجربة المنتج</a>
+                            {% endif %}
+                            <form method="post" action="{% url 'add_to_cart' product.id %}">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-danger w-100 py-3 fw-bold shadow rounded-3">🛒 أضف إلى السلة</button>
+                            </form>
+                        {% else %}
+                            <div class="alert alert-secondary text-center mb-0 py-3">🔔 غير متوفر حالياً</div>
+                        {% endif %}
+                      </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+{% if messages %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% for message in messages %}
+            // تظهر الرسالة فقط إذا كانت رسالة نجاح (إضافة منتج)
+            // رسائل الحذف لن تظهر هنا لأنها تكون عادة info أو warning في السلة
+            {% if message.tags == "success" %}
+            Swal.fire({
+                icon: 'success',
+                title: '{{ message }}',
+                position: 'center',
+                showConfirmButton: true,
+                confirmButtonText: 'موافق',
+                confirmButtonColor: '#dc3545',
+                timer: 3000,
+                timerProgressBar: true
+            });
+            {% endif %}
+        {% endfor %}
+    });
+</script>
+{% endif %}
+
+<style>
+  .img-container { height: 180px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .product-card img { max-width: 100%; max-height: 100%; object-fit: cover; transition: 0.5s; }
+  .product-card:hover img { transform: scale(1.1); }
+  .out-of-stock-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.4); z-index: 2; display: flex; align-items: center; justify-content: center; }
+  .grayscale { filter: grayscale(1); opacity: 0.5; }
+  .modal-main-img { height: 450px; width: 100%; object-fit: contain; background-color: #f8f9fa; }
+  .description-scroll { max-height: 200px; overflow-y: auto; line-height: 1.7; }
+  @media (max-width: 768px) { .img-container { height: 150px; } .modal-main-img { height: 280px; } .modal-dialog { margin: 10px; } .description-scroll { max-height: 120px; } h3 { font-size: 1.2rem; } }
+  .categories-scroll::-webkit-scrollbar { display: none; }
+  .btn-info { background: linear-gradient(to right, #0dcaf0, #0aa2c0); border: none; }
+  .btn-danger { background: linear-gradient(to right, #dc3545, #b02a37); border: none; }
+  @media (max-width: 768px) {
+  .modal-fix {
+    margin-top: 60px !important;
+  }
+
+  .modal-header {
+    top: 10px !important;
+    right: 10px !important;
+  }
+}
+
+</style>
+{% endblock %}

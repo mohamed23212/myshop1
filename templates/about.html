@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}الدعم الفني - فايدوكس ليبيا{% endblock %}
+
+{% block content %}
+<div class="container my-5" dir="rtl">
+
+    <h2 class="text-center mb-5 fw-bold" style="color:#e53935;">🛠️ الدعم الفني وخدمة العملاء</h2>
+
+    <div class="row g-4">
+        <div class="col-md-5">
+            <div class="position-sticky" style="top: 20px;">
+                <img src="{% static 'img/css.jpg' %}" class="img-fluid rounded-4 shadow-lg mb-3" alt="فايدوكس ليبيا">
+            
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 p-4 shadow-sm rounded-4">
+                
+                <div class="mb-4">
+                    <h4 class="fw-bold" style="color:#e53935;"><i class="bi bi-geo-alt-fill"></i> طرابلس (الفرع الرئيسي)</h4>
+                    <p class="mb-1 text-muted">طريق المطار – مدخل مشروع الهضبة</p>
+                    <p class="mb-1"><strong>📞 هاتف المبيعات:</strong> <a href="tel:+218942950095" class="text-dark">0942950095</a></p>
+                    <p class="mb-1"><strong>📦 مبيعات الجملة:</strong> <a href="tel:+218917988555" class="text-dark">0917988555</a></p>
+                </div>
+
+                <hr class="opacity-10">
+
+                <div class="mb-4">
+                    <h4 class="fw-bold" style="color:#e53935;"><i class="bi bi-geo-alt-fill"></i> فرع بنغازي</h4>
+                    <p class="mb-1 text-muted">الحدائق – شارع النفق</p>
+                    <p class="mb-1"><strong>📞 هاتف الفرع:</strong> <a href="tel:+218942940095" class="text-dark">0942940095</a></p>
+                </div>
+
+                <hr class="opacity-10">
+
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <h5 class="fw-bold" style="color:#e53935;"><i class="bi bi-envelope-at-fill"></i> المراسلات</h5>
+                        <a href="mailto:info@vaidox.store" class="text-dark">info@vaidox.store</a>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <h5 class="fw-bold" style="color:#e53935;"><i class="bi bi-clock-fill"></i> ساعات العمل</h5>
+                        <ul class="list-unstyled small">
+                            <li>السبت - الخميس: 10:00 ص - 07:00 م</li>
+                            <li class="text-danger fw-bold">الجمعة: عطلة أسبوعية</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold mt-3 mb-3" style="color:#e53935;">تواصل معنا فوراً</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="https://www.facebook.com/vaidox.1" target="_blank" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-facebook"></i> فيسبوك
+                    </a>
+                    <a href="https://wa.me/218942950095" target="_blank" class="btn btn-success rounded-pill px-4">
+                        <i class="bi bi-whatsapp"></i> واتساب طرابلس
+                    </a>
+                    <a href="https://wa.me/218942940095" target="_blank" class="btn btn-outline-success rounded-pill px-4">
+                        <i class="bi bi-whatsapp"></i> واتساب بنغازي
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body { background-color: #fcfcfc; }
+    .card { border-right: 5px solid #e53935 !important; }
+    .card a { text-decoration: none; transition: 0.3s; }
+    .card a:hover { color: #e53935 !important; }
+    .btn { font-weight: bold; }
+</style>
+{% endblock %}

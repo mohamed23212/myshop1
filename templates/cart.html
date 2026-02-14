@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}سلة التسوق - فايدوكس{% endblock %}
+
+{% block content %}
+<style>
+    /* 1. تنسيقات النافذة وإصلاح التداخل */
+    .modal { z-index: 2050 !important; }
+    .modal-backdrop { z-index: 2040 !important; }
+    .modal-dialog { margin-top: 100px !important; }
+
+    :root { --primary-red: #e53935; --soft-gray: #f8f9fa; }
+    .cart-card { border: none; border-radius: 15px; background: #fff; overflow: hidden; }
+    .product-row { border-bottom: 1px solid #eee; padding: 15px 0; }
+    
+    /* 2. أيقونة الحذف وسعر المنطقة */
+    .delete-icon { color: var(--primary-red); cursor: pointer; font-size: 1.2rem; transition: 0.2s; }
+    .delete-icon:hover { transform: scale(1.1); }
+    .region-price-bold { color: #000 !important; font-weight: 900 !important; }
+
+    /* 3. خيارات الدفع والاستلام */
+    .delivery-box, .pay-box { 
+        border: 2px solid #eee; border-radius: 12px; cursor: pointer; 
+        transition: 0.2s; background: #fff; padding: 10px; font-weight: bold; font-size: 0.85rem;
+    }
+    input[type="radio"]:checked + .delivery-box, 
+    input[type="radio"]:checked + .pay-box { 
+        border-color: var(--primary-red); background: #fff5f5; color: var(--primary-red);
+    }
+    .delivery-option input, .pay-opt input { display: none; }
+    
+    .btn-checkout { background: var(--primary-red); color: white; border-radius: 12px; padding: 12px; font-weight: bold; border: none; width: 100%; transition: 0.3s; }
+    .btn-checkout:hover { background: #c62828; box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3); }
+
+    /* 4. تصميم "السلة فارغة" الجديد */
+    .empty-cart-wrapper {
+        background: #fff; border-radius: 20px; padding: 80px 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-center;
+    }
+    .empty-cart-icon {
+        font-size: 6rem; color: #ffcdd2; display: inline-block;
+        animation: floatAnim 3s ease-in-out infinite;
+    }
+    @keyframes floatAnim {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-15px); }
+    }
+    .btn-shop-now {
+        background: var(--primary-red); color: white; border-radius: 30px;
+        padding: 12px 40px; font-weight: bold; text-decoration: none; transition: 0.3s;
+    }
+    .btn-shop-now:hover { background: #000; color: #fff; transform: translateY(-3px); }
+
+    /* 5. ملاحظات الأخطاء */
+    .error-note { color: var(--primary-red); font-size: 0.75rem; margin-top: 4px; display: none; font-weight: bold; }
+    .summary-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 5px; font-size: 0.9rem; }
+    #regionListContainer { z-index: 3000 !important; background: white; border: 1px solid #ddd; border-radius: 10px; }
+    .region-item:hover { background-color: #f1f1f1; cursor: pointer; }
+</style>
+
+<div class="container my-5" dir="rtl">
+    {% if cart_items %}
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="cart-card shadow-sm p-4 bg-white">
+                <h4 class="fw-bold mb-4 border-bottom pb-3">🛒 سلة التسوق</h4>
+                {% for item in cart_items %}
+                <div class="product-row d-flex align-items-center gap-3">
+                    <input class="form-check-input item-checkbox" type="checkbox" value="{{ item.id }}" 
+                           data-price="{{ item.get_total_price }}" 
+                           data-name="{{ item.product.name }}" 
+                           onchange="updateSelectedTotal()" checked>
+                    
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" class="rounded shadow-sm" style="width:65px; height:65px; object-fit:cover;">
+                    {% endif %}
+                    
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-bold">{{ item.product.name }}</h6>
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            <form method="post" action="{% url 'update_cart' item.id %}" class="d-flex gap-1">
+                                {% csrf_token %}
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control form-control-sm text-center qty-input" style="width:50px;">
+                                <button type="submit" class="btn btn-sm btn-light border">تحديث</button>
+                            </form>
+                            <form method="post" action="{% url 'remove_from_cart' item.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="bg-transparent border-0 p-0 shadow-none">
+                                    <i class="bi bi-trash3-fill delete-icon"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="fw-bold fs-6 text-start">{{ item.get_total_price }} د.ل</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="cart-card shadow-sm p-4 sticky-top" style="top: 100px;">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">ملخص الطلب</h5>
+                <div id="summary-list" class="mb-3"></div>
+                <div class="d-flex justify-content-between mb-4 fs-4 fw-bold text-danger border-top pt-2">
+                    <span>الإجمالي:</span>
+                    <span><span id="display_total">0</span> د.ل</span>
+                </div>
+                <button class="btn btn-checkout" onclick="openCheckoutModal()">اتمام الطلب ✅</button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-cart-wrapper text-center">
+        <div class="empty-cart-icon mb-4">
+            <i class="bi bi-cart-x"></i>
+        </div>
+        <h2 class="fw-bold mb-3">سلتك بانتظارك!</h2>
+        <p class="text-muted mb-4 fs-5">يبدو أنك لم تضف أي معدات إلى السلة بعد.<br>تصفح متجرنا الآن واحصل على أفضل العروض.</p>
+        <a href="{% url 'shop' %}" class="btn-shop-now shadow-sm">
+            <i class="bi bi-arrow-right-circle-fill ms-2"></i> ابدأ التسوق الآن
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-light border-0">
+                <h5 class="modal-title fw-bold">إكمال بيانات المستلم</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="mainOrderForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_items" id="selected_items_input">
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">الاسم</label>
+                            <input type="text" name="f_name" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold mb-1">اللقب</label>
+                            <input type="text" name="l_name" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="small fw-bold mb-1">رقم الهاتف</label>
+                            <input type="tel" id="phone_input" name="phone_number" class="form-control" placeholder="09XXXXXXXX" required>
+                            <div id="phone_err" class="error-note">رقم غير صحيح! أدخل 10 أرقام (مثال: 0910000000)</div>
+                        </div>
+                    </div>
+
+                    <label class="small fw-bold mb-2 d-block text-center border-top pt-3">طريقة الاستلام</label>
+                    <div class="d-flex gap-2 mb-3">
+                        <label class="delivery-option flex-fill text-center">
+                            <input type="radio" name="delivery_method" value="From the store" onchange="toggleShipping()" checked>
+                            <div class="delivery-box">🏪 من المحل</div>
+                        </label>
+                        <label class="delivery-option flex-fill text-center">
+                            <input type="radio" name="delivery_method" value="delivery" onchange="toggleShipping()">
+                            <div class="delivery-box">🚚 توصيل</div>
+                        </label>
+                    </div>
+
+                    <div id="shipping_ui" style="display: none;" class="bg-light p-3 rounded mb-3 border">
+                        <div class="mb-3 position-relative">
+                            <label class="small fw-bold text-danger">المنطقة *</label>
+                            <input type="text" id="regionSearch" class="form-control" placeholder="ابحث عن منطقتك..." onfocus="showRegions()" onkeyup="filterRegions()">
+                            <div id="regionListContainer" class="shadow w-100 position-absolute" style="display: none; max-height: 150px; overflow-y: auto; top: 100%;">
+                                {% for reg in regions %}
+                                <div class="region-item p-2 border-bottom" onclick="selectRegion('{{ reg.id }}', '{{ reg.name }}', '{{ reg.shipping_price }}')">
+                                    {{ reg.name }} <span class="float-start region-price-bold">+{{ reg.shipping_price|floatformat:0 }}د</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="region_id" id="selected_region_id">
+                            <input type="hidden" id="current_shipping_price" value="0">
+                            <div id="region_err" class="error-note">يرجى اختيار المنطقة من القائمة</div>
+                        </div>
+                        <label class="small fw-bold mb-1">وصف العنوان *</label>
+                        <input type="text" id="location_url_input" name="location_url" class="form-control" placeholder="الشارع، معالم قريبة..">
+                        <div id="loc_err" class="error-note">خانة العنوان مطلوبة</div>
+                    </div>
+
+                    <label class="small fw-bold mb-2 d-block text-center border-top pt-3">طريقة الدفع</label>
+                    <div class="d-flex gap-2 mb-4 justify-content-center">
+                        <label class="pay-opt text-center flex-fill">
+                            <input type="radio" name="payment_method" value="cash_on_delivery" checked>
+                            <div class="pay-box">💵 كاش</div>
+                        </label>
+                        <label class="pay-opt text-center flex-fill">
+                            <input type="radio" name="payment_method" value="bank_transfer">
+                            <div class="pay-box">🏦 حوالة مصرفية (من المحل)</div>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3 mt-4 text-end">
+                        <input class="form-check-input float-end ms-2" type="checkbox" id="termsAgree" required>
+                        <label class="form-check-label small text-muted" for="termsAgree">
+                            أوافق على <a href="{% url 'terms' %}" target="_blank" class="text-danger fw-bold">الشروط والأحكام</a>.
+                        </label>
+                    </div>
+                    <div class="alert alert-dark text-center fw-bold mb-0" id="final_price_tag">المجموع النهائي: 0 د.ل</div>
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-checkout" onclick="validateAndSubmit()">تأكيد الطلب</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function updateSelectedTotal() {
+        let total = 0;
+        let summaryHtml = '';
+        let ids = [];
+
+        document.querySelectorAll('.item-checkbox:checked').forEach(cb => {
+            const row = cb.closest('.product-row');
+            const name = cb.dataset.name;
+            const price = parseFloat(cb.dataset.price);
+            const qty = row.querySelector('.qty-input').value;
+            total += price;
+            ids.push(cb.value);
+            summaryHtml += `<div class="summary-item"><span>${name}</span> <span>${qty}x</span></div>`;
+        });
+
+        const listDiv = document.getElementById('summary-list');
+        if(listDiv) listDiv.innerHTML = summaryHtml || '<p class="text-muted small">لم يتم اختيار أي منتج</p>';
+        
+        const isDelivery = document.querySelector('input[name="delivery_method"]:checked').value === 'delivery';
+        const ship = isDelivery ? parseFloat(document.getElementById('current_shipping_price').value || 0) : 0;
+        
+        document.getElementById('display_total').innerText = Math.round(total);
+        document.getElementById('final_price_tag').innerText = "المجموع النهائي: " + Math.round(total + ship) + " د.ل";
+        document.getElementById('selected_items_input').value = ids.join(',');
+    }
+
+    function toggleShipping() {
+        document.getElementById('shipping_ui').style.display = document.querySelector('input[name="delivery_method"]:checked').value === 'delivery' ? 'block' : 'none';
+        updateSelectedTotal();
+    }
+
+    function showRegions() { document.getElementById('regionListContainer').style.display = 'block'; }
+    function filterRegions() {
+        let val = document.getElementById('regionSearch').value.toLowerCase();
+        document.querySelectorAll('.region-item').forEach(item => { item.style.display = item.innerText.toLowerCase().includes(val) ? 'block' : 'none'; });
+    }
+    
+    function selectRegion(id, name, price) {
+        document.getElementById('regionSearch').value = name;
+        document.getElementById('selected_region_id').value = id;
+        document.getElementById('current_shipping_price').value = price;
+        document.getElementById('regionListContainer').style.display = 'none';
+        document.getElementById('region_err').style.display = 'none';
+        updateSelectedTotal();
+    }
+
+    function openCheckoutModal() {
+        if (document.querySelectorAll('.item-checkbox:checked').length === 0) {
+            Swal.fire('تنبيه', 'يرجى اختيار منتج واحد على الأقل', 'warning'); return;
+        }
+        new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+    }
+
+    function validateAndSubmit() {
+        const form = document.getElementById('mainOrderForm');
+        const phoneInput = document.getElementById('phone_input');
+        const isDelivery = document.querySelector('input[name="delivery_method"]:checked').value === 'delivery';
+        
+        document.querySelectorAll('.error-note').forEach(el => el.style.display = 'none');
+
+        let isValid = true;
+        if (!/^09[1234][0-9]{7}$/.test(phoneInput.value.trim())) {
+            document.getElementById('phone_err').style.display = 'block'; isValid = false;
+        }
+        if (isDelivery) {
+            if (!document.getElementById('selected_region_id').value) { document.getElementById('region_err').style.display = 'block'; isValid = false; }
+            if (document.getElementById('location_url_input').value.trim().length < 3) { document.getElementById('loc_err').style.display = 'block'; isValid = false; }
+        }
+        
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+        if (!isValid) return;
+
+        Swal.fire({ title: 'جاري تسجيل طلبك...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+
+        fetch("{% url 'place_order' %}", {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
+                Swal.fire({
+                    title: '✅ تم تسجيل طلبك بنجاح',
+                    html: `
+                        <p class="mb-4">رقم الطلب الخاص بك هو <b>#${data.order_id}</b></p>
+                        <a href="${data.whatsapp_url}" target="_blank" class="btn btn-success w-100 py-3 fw-bold mb-2">تأكيد الطلب عبر واتساب</a>
+                        <a href="${data.order_url}" class="btn btn-outline-dark w-100 py-2">رؤية الطلب</a>
+                    `,
+                    showConfirmButton: false, allowOutsideClick: false
+                });
+            } else { Swal.fire('خطأ', data.message, 'error'); }
+        }).catch(() => Swal.fire('خطأ', 'حدث خطأ في الشبكة', 'error'));
+    }
+
+    document.addEventListener('DOMContentLoaded', updateSelectedTotal);
+</script>
+{% endblock %}

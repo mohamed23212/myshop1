@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} 
+{% block title %}تسجيل الدخول{% endblock %}
+
+{% block content %}
+<style>
+/* CSS الخاص بتسجيل الدخول */
+/* ملاحظة: أبقيت على الـ CSS الذي أرسلته */
+* { box-sizing: border-box; margin:0; padding:0; font-family: 'Cairo', sans-serif; }
+.login-card { background:white; width:100%; max-width:400px; padding:40px; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.05); text-align:right; margin:50px auto; }
+.login-card h2 { font-size:24px; font-weight:700; margin-bottom:25px; color:#1a1a1a; }
+.form-group { margin-bottom:20px; }
+.form-group label { display:block; margin-bottom:8px; font-weight:600; color:#4b5563; }
+.form-group input { width:100%; padding:12px 15px; border:1px solid #e5e7eb; background-color:#eff6ff; border-radius:6px; font-size:14px; transition:0.3s; }
+.form-group input:focus { outline:none; border-color:#3b82f6; background-color:#fff; }
+.btn-login { width:100%; padding:12px; background-color:#e53935; color:white; border:none; border-radius:6px; font-size:16px; font-weight:600; cursor:pointer; transition: background 0.3s; }
+.btn-login:hover { background-color:#2563eb; }
+.register-link { margin-top:15px; margin-bottom:25px; font-size:14px; color:#4b5563; }
+.register-link a { color:#3b82f6; text-decoration:none; font-weight:600; }
+.btn-google { display:flex; align-items:center; justify-content:center; width:100%; padding:12px; background-color:#111827; color:white; text-decoration:none; border-radius:6px; font-weight:600; transition: opacity 0.3s; border:1px solid #111827; margin-top:10px; }
+.btn-google:hover { opacity:0.9; }
+.btn-google svg { width:20px; height:20px; margin-left:10px; }
+.footer-text { margin-top:30px; font-size:12px; color:#9ca3af; text-align:center; }
+.error-message { color: red; margin-bottom: 15px; font-weight: 500; font-size: 14px; }
+</style>
+
+<div class="login-card">
+    <h2>تسجيل الدخول</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="error-message">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="error-message">
+            اسم المستخدم أو كلمة المرور غير صحيحة.
+        </div>
+    {% endif %}
+
+    <form method="POST"> {% csrf_token %}
+        
+        {{ form|crispy }} 
+        
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <button type="submit" class="btn-login">دخول</button>
+    </form>
+    
+    <div class="register-link">
+        أليس لديك حساب؟ <a href="{% url 'signup' %}">سجل الآن</a>
+    </div>
+
+    <div class="footer-text">
+        © 2025 متجر vaidox جميع الحقوق محفوظة.
+    </div>
+</div>
+{% endblock %}

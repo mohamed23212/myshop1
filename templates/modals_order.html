@@ -1,0 +1,51 @@
+{% for group in order_groups %}
+    <div class="modal fade" id="cancelModal-{{ group.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-danger text-white border-0 p-4">
+                    <h5 class="modal-title fw-bold">تأكيد الإلغاء</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="fs-1 text-danger mb-3">⚠️</div>
+                    <p class="fs-5">هل أنت متأكد من رغبتك في إلغاء الطلب رقم <strong>#{{ group.id }}</strong>؟</p>
+                    <p class="text-muted small">لا يمكن التراجع عن هذا الإجراء بعد تنفيذه.</p>
+                </div>
+                <div class="modal-footer border-0 p-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">تراجع</button>
+                    <form action="{% url 'cancel_order' group.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger rounded-pill px-4">تأكيد الإلغاء</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="modal fade" id="editModal-{{ group.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white border-0 p-4">
+                    <h5 class="modal-title fw-bold">تعديل بيانات الاستلام</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{% url 'edit_order_delivery' group.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">رقم الهاتف:</label>
+                            <input type="text" name="phone_number" class="form-control rounded-3" value="{{ group.phone_number }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">رابط الموقع أو العنوان:</label>
+                            <input type="text" name="location_url" class="form-control rounded-3" value="{{ group.location_link|default:group.address }}">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endfor %}
