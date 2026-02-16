@@ -1,222 +1,429 @@
 {% extends "base.html" %}
-{% block title %}📦 تتبع طلبي رقم #{{ group.id }}{% endblock %}
+{% block title %}📦 تتبع طلبك - #{{ group.id }}{% endblock %}
 
 {% block content %}
-<style>
-    /* تحسينات عامة */
-    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    
-    /* تصميم شريط التتبع */
-    .stepper-wrapper { display: flex; justify-content: space-between; margin-top: 20px; position: relative; }
-    .stepper-item { position: relative; display: flex; flex-direction: column; align-items: center; flex: 1; z-index: 2; }
-    .stepper-item::before { position: absolute; content: ""; border-bottom: 4px solid #eee; width: 100%; top: 22px; right: -50%; z-index: -1; }
-    .stepper-item::after { position: absolute; content: ""; border-bottom: 4px solid transparent; width: 0%; top: 22px; right: -50%; z-index: -1; transition: width 0.6s ease-in-out, border-color 0.6s; }
-    .step-pending::after { width: 100%; border-color: #ffc107 !important; }
-    .step-processing::after { width: 100%; border-color: #0d6efd !important; }
-    .stepper-item:first-child::before, .stepper-item:first-child::after { content: none; }
-    .step-counter { width: 45px; height: 45px; border-radius: 50%; background: #fff; border: 2px solid #eee; display: flex; justify-content: center; align-items: center; transition: 0.4s; font-size: 1.2rem; color: #ccc; }
-    .active-pending .step-counter { border-color: #ffc107; color: #ffc107; }
-    .active-processing .step-counter { border-color: #0d6efd; color: #0d6efd; }
-    .active-delivered .step-counter { border-color: #198754; color: #fff; background: #198754; }
-    .step-name { font-size: 12px; margin-top: 8px; font-weight: bold; color: #bbb; }
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    /* صندوق الإجمالي */
-    .total-box-luxury { background: linear-gradient(135deg, #f0f7ff 0%, #e1effe 100%); border: 2px solid #0056b3; border-radius: 15px; padding: 15px; text-align: center; }
-    .text-custom-blue { color: #0056b3; }
+<style>
+    :root {
+        --main-red: #e63946;
+        --color-pending: #f1c40f;   /* أصفر ذهبي للانتظار */
+        --color-processing: #2c3e50; /* كحلي غامق فخم بدلاً من الأزرق الفاقع */
+        --color-delivered: #27ae60;  /* أخضر هادئ */
+        --bg-color: #f8f9fa;
+    }
+
+    body { 
+        background-color: var(--bg-color); 
+        font-family: 'Cairo', sans-serif; /* الخط الجديد */
+        color: #2d3436;
+    }
+
+    /* 1. بنر الترحيب (تصميم أنظف بدون الأزرق) */
+    .welcome-card {
+        background: #ffffff; border-radius: 25px; padding: 30px; 
+        margin-bottom: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+        border: 1px solid #f1f1f1;
+        position: relative; overflow: hidden;
+    }
+    /* زخرفة بسيطة جانبية باللون الأحمر بدلاً من الأزرق */
+    .welcome-card::before {
+        content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+        width: 6px; background: var(--main-red); border-radius: 0 25px 25px 0;
+    }
+    .warning-text { 
+        background: #fff5f5; color: #c0392b; font-weight: 700; 
+        padding: 12px; border-radius: 12px; margin-top: 15px; font-size: 0.85rem; 
+        display: flex; align-items: center; gap: 8px;
+    }
+
+    /* 2. شريط التتبع (ألوان احترافية) */
+    .stepper-box { background: #ffffff; border-radius: 25px; padding: 40px 20px; margin-bottom: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); }
+    .track-line { position: relative; height: 6px; background: #ecf0f1; border-radius: 10px; margin: 40px auto; width: 85%; }
+    .track-fill { 
+        position: absolute; height: 100%; border-radius: 10px; transition: width 1.5s ease;
+        {% if group.status == 'PENDING' %} width: 15%; background: var(--color-pending);
+        {% elif group.status == 'PROCESSING' %} width: 50%; background: var(--color-processing);
+        {% elif group.status == 'DELIVERED' %} width: 100%; background: var(--color-delivered);
+        {% endif %}
+    }
+    .nodes-wrap { position: absolute; top: -17px; display: flex; justify-content: space-between; width: 100%; }
+    .status-node { 
+        width: 40px; height: 40px; background: white; 
+        border: 4px solid #ecf0f1; border-radius: 50%; 
+        display: flex; align-items: center; justify-content: center; z-index: 2; 
+        transition: 0.3s;
+    }
+    .status-node i { font-size: 1.1rem; color: #bdc3c7; }
+    
+    /* تفعيل الألوان عند النشاط */
+    .status-node.active-pending { border-color: var(--color-pending); box-shadow: 0 0 0 4px rgba(241, 196, 15, 0.15); }
+    .status-node.active-pending i { color: var(--color-pending); }
+
+    .status-node.active-processing { border-color: var(--color-processing); box-shadow: 0 0 0 4px rgba(44, 62, 80, 0.15); }
+    .status-node.active-processing i { color: var(--color-processing); }
+
+    .status-node.active-delivered { border-color: var(--color-delivered); box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.15); }
+    .status-node.active-delivered i { color: var(--color-delivered); }
+
+    .status-label { position: absolute; top: 48px; font-size: 0.75rem; font-weight: 700; color: #95a5a6; }
+
+    /* 3. الفاتورة الرقمية (Modern Look) */
+    .receipt-container { 
+        background: #ffffff; border-radius: 30px; position: relative; 
+        box-shadow: 0 15px 40px rgba(0,0,0,0.04); padding: 40px 30px; 
+    }
+    .date-corner { position: absolute; top: 35px; left: 35px; font-size: 0.75rem; color: #7f8c8d; font-weight: 600; background: #f8f9fa; padding: 5px 12px; border-radius: 20px; }
+    
+    .edit-corner { position: absolute; top: 30px; right: 30px; }
+    .edit-btn-custom { 
+        font-size: 0.8rem; color: var(--main-red); font-weight: 800; 
+        text-decoration: none; background: #fff5f5; padding: 10px 20px; 
+        border-radius: 50px; transition: 0.3s; border: 1px solid #ffecec;
+    }
+    .edit-btn-custom:hover { background: var(--main-red); color: white; border-color: var(--main-red); }
+
+    /* شبكة الخانات */
+    .info-boxes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 40px 0; }
+    .custom-info-box { 
+        background: #ffffff; border-radius: 20px; padding: 20px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02); 
+        border: 1px solid #f5f6fa;
+        border-right: 5px solid var(--main-red); /* الخط الأحمر */
+        display: flex; flex-direction: column; justify-content: center;
+        transition: transform 0.2s;
+    }
+    .custom-info-box:hover { transform: translateY(-3px); }
+    .info-box-label { font-size: 0.7rem; color: #95a5a6; font-weight: 600; display: block; margin-bottom: 6px; }
+    .info-box-value { font-size: 1rem; font-weight: 800; color: #2d3436; display: block; }
 
     /* المنتجات */
-    .product-img { width: 60px; height: 60px; object-fit: cover; border-radius: 10px; border: 1px solid #ddd; flex-shrink: 0; }
-    .main-table th { white-space: nowrap; padding: 12px 8px !important; }
-    .product-info-wrapper { display: flex; align-items: center; gap: 10px; min-width: 150px; }
+    .product-img { width: 70px; height: 70px; border-radius: 18px; object-fit: cover; margin-left: 18px; border: 1px solid #ecf0f1; }
 
-    /* قسم التأكيد */
-    .wa-confirmation-card { background: #fff; border-radius: 20px; border: 1px solid #e0e0e0; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-
-    @media (max-width: 768px) {
-        .main-table thead { display: none; }
-        .main-table tr { display: block; margin-bottom: 15px; border: 1px solid #eee; border-radius: 15px; padding: 10px; background: #fff; }
-        .main-table td { display: flex; justify-content: space-between; align-items: center; border: none; padding: 8px 5px !important; text-align: left !important; }
-        .main-table td::before { content: attr(data-label); font-weight: bold; color: #666; font-size: 13px; }
-        .product-cell { flex-direction: column; align-items: flex-start !important; }
-        .product-cell::before { margin-bottom: 5px; }
+    /* ملخص الحساب */
+    .billing-summary { 
+        background: #fdfdfd; border-radius: 25px; padding: 25px; margin: 30px 0; 
+        border: 1px dashed #e0e0e0; 
     }
+    .black-footer-bar { 
+        background: #2d3436; color: white !important; margin: 30px -30px -40px -30px; padding: 30px 35px; 
+        border-radius: 0 0 30px 30px; display: flex; justify-content: space-between; align-items: center; 
+    }
+    .black-footer-bar span { color: white !important; font-weight: 800; font-size: 1.2rem; }
+
+    /* 4. أزرار التواصل */
+    .wa-note-bold { font-weight: 800; color: #34495e; font-size: 0.9rem; margin-bottom: 20px; display: block; }
+    .btn-wa-natural { 
+        background: #25d366; color: white; border-radius: 50px; padding: 16px 40px; 
+        font-weight: 700; border: none; display: inline-flex; align-items: center; gap: 10px;
+        text-decoration: none; transition: 0.3s; box-shadow: 0 10px 25px rgba(37,211,102,0.25);
+    }
+    .btn-wa-natural:hover { background: #20bf5b; color: white; transform: scale(1.02); }
+    
+    .red-basket-cancel { 
+        color: var(--main-red); background: #ffffff; border: 2px solid #ffecec; 
+        width: 55px; height: 55px; border-radius: 18px; display: flex; 
+        align-items: center; justify-content: center; font-size: 1.4rem; 
+        transition: 0.3s; margin: 30px auto 0; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+    }
+    .red-basket-cancel:hover { background: var(--main-red); color: white; border-color: var(--main-red); }
+
+    /* 5. تجميل نافذة التعديل (Modal Beautification) */
+    .modal-dialog { max-width: 420px; margin: 100px auto; }
+    .modal-content { 
+        border-radius: 30px; border: none; 
+        box-shadow: 0 40px 80px rgba(0,0,0,0.15); 
+        background: #fff;
+    }
+    .drag-header { 
+        cursor: move; background: #ffffff; padding: 25px; 
+        border-radius: 30px 30px 0 0; display: flex; justify-content: space-between; align-items: center; 
+        border-bottom: 1px solid #f5f5f5;
+    }
+    
+    /* حقول الإدخال المحسنة */
+    .modal-body label { font-weight: 700; margin-bottom: 8px; color: #2d3436; font-size: 0.85rem; }
+    .form-control { 
+        border-radius: 15px; padding: 14px; border: 1px solid #eee; 
+        background: #fbfbfb; transition: 0.3s; color: #2d3436; font-weight: 600;
+    }
+    .form-control:focus { 
+        background: #fff; border-color: var(--main-red); box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1); 
+    }
+
+    /* أزرار الراديو المحسنة */
+    .btn-outline-dark {
+        border: 2px solid #f1f1f1; color: #7f8c8d; font-weight: 700; border-radius: 15px; padding: 12px;
+    }
+    .btn-check:checked + .btn-outline-dark {
+        background-color: var(--main-red); border-color: var(--main-red); color: white;
+        box-shadow: 0 8px 20px rgba(230, 57, 70, 0.3);
+    }
+
+    /* قائمة المناطق */
+    #searchRegUI { 
+        position: absolute; z-index: 3500; width: 100%; background: white; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-radius: 15px; 
+        display: none; max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-top: 5px;
+    }
+    .reg-option { 
+        padding: 14px 20px; border-bottom: 1px solid #f9f9f9; 
+        cursor: pointer; display: flex; justify-content: space-between; font-weight: 600;
+    }
+    .reg-option:hover { background: #fdfdfd; color: var(--main-red); }
 </style>
 
-<div class="container my-4" dir="rtl">
+<div class="container my-5" dir="rtl">
 
-    <div class="card shadow-sm border-0 rounded-4 mb-4">
-        <div class="card-body py-4 px-2">
-            <div class="stepper-wrapper">
-                <div class="stepper-item active-pending {% if group.status != 'CANCELLED' %}step-pending{% endif %}">
-                    <div class="step-counter"><i class="bi bi-clock-history"></i></div>
-                    <div class="step-name" style="color:#ffc107">انتظار</div>
-                </div>
-                <div class="stepper-item {% if group.status == 'PROCESSING' or group.status == 'DELIVERED' %}active-processing step-processing{% endif %}">
-                    <div class="step-counter"><i class="bi bi-gear-wide-connected"></i></div>
-                    <div class="step-name" {% if group.status == 'PROCESSING' %}style="color:#0d6efd"{% endif %}>تجهيز</div>
-                </div>
-                <div class="stepper-item {% if group.status == 'DELIVERED' %}active-delivered{% endif %}">
-                    <div class="step-counter"><i class="bi bi-truck"></i></div>
-                    <div class="step-name" {% if group.status == 'DELIVERED' %}style="color:#198754"{% endif %}>تم التسليم</div>
-                </div>
+    {% if group.status == 'CANCELLED' %}
+    <div class="text-center py-5 animate__animated animate__fadeIn">
+        <i class="bi bi-x-circle text-danger" style="font-size: 5rem;"></i>
+        <h2 class="fw-bold mt-4">الطلب ملغي</h2>
+        <a href="{% url 'shop' %}" class="btn btn-dark rounded-pill px-5 mt-3 shadow">العودة للمتجر</a>
+    </div>
+    {% else %}
+
+    <div class="welcome-card animate__animated animate__fadeInDown">
+        <h5 class="fw-bold m-0" style="color: #2d3436;">مرحباً {{ group.first_name }}! 👋</h5>
+        <p class="small text-muted m-0 mt-2 fw-bold">تم قبول طلبك بنجاح. إليك آخر التحديثات:</p>
+        <div class="warning-text">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>تنبيه: في حالة البدء في تجهيز طلبك لن تستطيع إلغاءه أو التعديل في البيانات.</span>
+        </div>
+    </div>
+
+    <div class="stepper-box animate__animated animate__fadeIn">
+        <div class="text-center mb-1">
+            <h5 class="fw-bold m-0 text-muted small">حالة الطلب</h5>
+            <span class="badge bg-dark rounded-pill px-3 mt-2" style="font-weight: 500;">#{{ group.id }}</span>
+        </div>
+        <div class="track-line">
+            <div class="track-fill"></div>
+            <div class="nodes-wrap">
+                <div class="status-node active-pending"><i class="bi bi-clock-fill"></i><div class="status-label">انتظار</div></div>
+                <div class="status-node {% if group.status != 'PENDING' %}active-processing{% endif %}"><i class="bi bi-box-seam-fill"></i><div class="status-label">تجهيز</div></div>
+                <div class="status-node {% if group.status == 'DELIVERED' %}active-delivered{% endif %}"><i class="bi bi-check-circle-fill"></i><div class="status-label">استلام</div></div>
             </div>
         </div>
     </div>
 
-    <div class="card shadow border-0 rounded-4 overflow-hidden mb-4">
-        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3 px-3">
-             <span class="fw-bold fs-5 text-dark">#{{ group.id }}</span>
-             <span class="badge px-3 py-2 rounded-pill {% if group.status == 'PENDING' %}bg-warning text-dark{% elif group.status == 'PROCESSING' %}bg-primary{% elif group.status == 'DELIVERED' %}bg-success{% elif group.status == 'CANCELLED' %}bg-danger{% endif %}">
-                {{ group.get_status_display }}
-             </span>
-        </div>
+    <div class="receipt-container animate__animated animate__fadeInUp">
+        <div class="date-corner">{{ group.created_at|date:"Y/m/d - H:i" }}</div>
         
-        <div class="card-body p-3 text-end">
-            <div class="row g-3 mb-4 text-end">
-                <div class="col-12">
-                    <div class="p-3 border rounded-4 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="fw-bold mb-0 text-secondary small"><i class="bi bi-geo-alt-fill me-1"></i>بيانات المستلم</h6>
-                            {% if group.status == 'PENDING' %}
-                            <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" data-bs-toggle="modal" data-bs-target="#editInfoModal" style="font-size: 11px;">تعديل</button>
-                            {% endif %}
-                        </div>
-                        <div class="fw-bold small mb-1">{{ group.first_name }} {{ group.last_name }}</div>
-                        <div class="small text-dark mb-1"><i class="bi bi-telephone text-muted"></i> {{ group.phone_number }}</div>
-                        <div class="small text-dark"><i class="bi bi-truck text-muted"></i> الاستلام: {{ group.get_delivery_method_display }}</div>
-                        {% if group.delivery_method == 'delivery' %}
-                        <div class="small text-dark"><i class="bi bi-map text-muted"></i> {{ group.address }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="col-12 text-center">
-                    <div class="total-box-luxury">
-                        <div class="text-muted small fw-bold">إجمالي الفاتورة</div>
-                        <div class="fs-3 fw-bold text-custom-blue">{{ group.total|floatformat:0 }} <small class="fs-6">د.ل</small></div>
-                    </div>
-                </div>
-            </div>
-
-            <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-1"></i> محتويات الطلب:</h6>
-            <div class="table-responsive border rounded-3">
-                <table class="table align-middle main-table mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 50%;">المنتج</th>
-                            <th class="text-center">الكمية</th>
-                            <th class="text-center">المجموع</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in group.orders.all %}
-                        <tr>
-                            <td class="product-cell" data-label="المنتج">
-                                <div class="product-info-wrapper text-end">
-                                    {% if order.product and order.product.image %}
-                                        <img src="{{ order.product.image.url }}" class="product-img">
-                                    {% else %}
-                                        <div class="product-img bg-light d-flex align-items-center justify-content-center"><i class="bi bi-image text-muted"></i></div>
-                                    {% endif %}
-                                    <div>
-                                        <div class="fw-bold text-dark" style="font-size: 13px; line-height: 1.2;">{{ order.product_name }}</div>
-                                        <small class="text-muted">{{ order.price|floatformat:0 }} د.ل</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="text-center" data-label="الكمية">
-                                <span class="badge bg-white text-dark border px-2 py-1">{{ order.quantity }}</span>
-                            </td>
-                            <td class="text-center fw-bold text-custom-blue" data-label="المجموع">
-                                {{ order.total|floatformat:0 }} د.ل
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="wa-confirmation-card mt-4 text-center">
-        <div class="alert alert-warning border-0 shadow-sm rounded-4 py-2 px-3 mb-3 text-center" style="font-size: 13px; background-color: #fff9e6; color: #856404; border-right: 5px solid #ffc107 !important;">
-            <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>
-            <strong>ملاحظة هامة:</strong> يجب عليك التأكيد عبر الواتساب لتتمكن من مراجعة طلبك.
-        </div>
-        
-        <div class="d-flex justify-content-center">
-            <a id="wa_confirm_btn" href="#" target="_blank" 
-               class="btn btn-success py-2 px-5 fw-bold rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2"
-               style="font-size: 16px; background-color: #25D366; border: none; min-width: 250px; max-width: 80%;">
-                <i class="bi bi-whatsapp fs-4"></i>
-                <span>تأكيد الطلب عبر واتساب</span>
+        {% if group.status == 'PENDING' %}
+        <div class="edit-corner">
+            <a href="#" class="edit-btn-custom shadow-sm" data-bs-toggle="modal" data-bs-target="#masterEditModal">
+                تعديل البيانات <i class="bi bi-pencil-square ms-1"></i>
             </a>
         </div>
+        {% endif %}
+
+        <div class="text-center mt-5 mb-4">
+            <h3 class="fw-bold m-0 text-dark">{{ group.first_name }} {{ group.last_name }}</h3>
+        </div>
+
+        <div class="info-boxes-grid">
+            <div class="custom-info-box">
+                <span class="info-box-label"><i class="bi bi-geo-alt me-1"></i> المنطقة</span>
+                <span class="info-box-value">{{ group.region.name|default:"-" }}</span>
+            </div>
+            <div class="custom-info-box">
+                <span class="info-box-label"><i class="bi bi-phone me-1"></i> الهاتف</span>
+                <span class="info-box-value">{{ group.phone_number }}</span>
+            </div>
+            <div class="custom-info-box">
+                <span class="info-box-label"><i class="bi bi-truck me-1"></i> الاستلام</span>
+                <span class="info-box-value">{% if group.region %}توصيل 🚚{% else %}من المحل{% endif %}</span>
+            </div>
+            <div class="custom-info-box">
+                <span class="info-box-label"><i class="bi bi-wallet2 me-1"></i> الدفع</span>
+                <span class="info-box-value">{% if group.payment_method == 'bank_transfer' %}حوالة{% else %}كاش{% endif %}</span>
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3 mt-4 text-dark" style="font-size: 0.95rem;">المنتجات المطلوبة:</h6>
+        <div class="pt-2 border-top">
+            {% for item in group.orders.all %}
+            <div class="d-flex align-items-center mb-3">
+                <img src="{% if item.product.image %}{{ item.product.image.url }}{% else %}https://via.placeholder.com/100{% endif %}" class="product-img shadow-sm">
+                <div class="flex-grow-1">
+                    <div class="fw-bold small text-dark">{{ item.product_name }}</div>
+                    <div class="text-muted small fw-bold">الكمية: {{ item.quantity }}</div>
+                </div>
+                <div class="fw-bold text-dark">{{ item.total|floatformat:0 }} د.ل</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="billing-summary">
+            <div class="d-flex justify-content-between mb-2 small"><span class="text-muted fw-bold">صافي المنتجات</span><span class="fw-bold">{{ items_total|floatformat:0 }} د.ل</span></div>
+            <div class="d-flex justify-content-between mb-2 small text-success"><span class="fw-bold">خصم الكوبون</span><span class="fw-bold">0 د.ل</span></div>
+            <div class="d-flex justify-content-between border-top pt-2 mb-2 fw-bold small text-dark"><span>الإجمالي بعد الكوبون</span><span>{{ items_total|floatformat:0 }} د.ل</span></div>
+            <div class="d-flex justify-content-between small text-danger fw-bold"><span>تكلفة التوصيل</span><span>+ {{ group.shipping_cost|floatformat:0 }} د.ل</span></div>
+        </div>
+
+        <div class="black-footer-bar">
+            <span>المجموع النهائي</span>
+            <span class="fs-4">{{ group.total|floatformat:0 }} د.ل</span>
+        </div>
+    </div>
+
+    <div class="text-center mt-5 mb-5 px-3">
+        <span class="wa-note-bold">إذا أردت مراجعة طلبك مرة أخرى، فأرسل إلينا الرابط عبر الواتساب</span>
+        <a id="wa_global_btn" href="#" target="_blank" class="btn-wa-natural">
+            <i class="bi bi-whatsapp fs-5"></i> الإرسال عبر الواتس
+        </a>
 
         {% if group.status == 'PENDING' %}
-        <div class="text-center mt-4">
-            <button class="btn btn-link btn-sm text-danger text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
-                <i class="bi bi-x-circle me-1"></i> إلغاء الطلب بالكامل
-            </button>
+        <div class="red-basket-cancel shadow-sm" data-bs-toggle="modal" data-bs-target="#cancelModal" title="إلغاء الطلب">
+            <i class="bi bi-trash3-fill"></i>
         </div>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 
-{% if group.status == 'PENDING' %}
-<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow text-end" dir="rtl">
-            <div class="modal-header border-bottom-0">
-                <h5 class="modal-title fw-bold text-danger" id="cancelOrderModalLabel">إلغاء الطلب</h5>
-                <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="masterEditModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" id="dragUIBox">
+        <div class="modal-content text-end">
+            <div class="drag-header" id="dragUIHandle">
+                <h6 class="fw-bold m-0 text-dark">تحديث البيانات <i class="bi bi-arrows-move ms-1 text-muted small"></i></h6>
+                <button type="button" class="btn-close ms-0" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{% url 'cancel_order' group.id %}" method="POST">
+            <form action="{% url 'edit_order_delivery' group.id %}" method="POST">
                 {% csrf_token %}
-                <div class="modal-body py-0">
-                    <p class="text-muted small">هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء.</p>
-                    <div class="mb-3">
-                        <label for="cancellation_reason" class="form-label fw-bold small">سبب الإلغاء (اختياري):</label>
-                        <textarea name="cancellation_reason" id="cancellation_reason" class="form-control rounded-3" rows="3" placeholder="مثلاً: تغيير المنتج..."></textarea>
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label>رقم الهاتف</label>
+                        <input type="tel" name="phone_number" class="form-control" value="{{ group.phone_number }}" required>
                     </div>
-                </div>
-                <div class="modal-footer border-top-0 justify-content-start">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">تراجع</button>
-                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">تأكيد الإلغاء</button>
+
+                    <label class="d-block mb-2">طريقة الاستلام</label>
+                    <div class="d-flex gap-2 mb-4">
+                        <label class="flex-fill"><input type="radio" name="delivery_method" value="From the store" class="btn-check" id="z1" onchange="refreshUI()" {% if not group.region %}checked{% endif %}><label class="btn btn-outline-dark w-100" for="z1">من المحل</label></label>
+                        <label class="flex-fill"><input type="radio" name="delivery_method" value="delivery" class="btn-check" id="z2" onchange="refreshUI()" {% if group.region %}checked{% endif %}><label class="btn btn-outline-dark w-100" for="z2">توصيل</label></label>
+                    </div>
+
+                    <div id="shipEditUI" style="display: {% if group.region %}block{% else %}none{% endif %}; position: relative;">
+                        <label class="text-danger">ابحث عن المنطقة الجديدة *</label>
+                        <input type="text" id="regSearchInput" class="form-control mb-2" placeholder="اكتب اسم المنطقة..." onfocus="openRegUI()" onkeyup="filterRegUI()" value="{{ group.region.name|default:'' }}">
+                        
+                        <div id="searchRegUI">
+                            {% for r in regions %}
+                            <div class="reg-option" onclick="pickRegUI('{{ r.id }}', '{{ r.name }}', '{{ r.shipping_price }}')">
+                                <span>{{ r.name }}</span> <span class="text-danger small">+{{ r.shipping_price|floatformat:0 }} د.ل</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <input type="hidden" name="region_id" id="hidden_reg_id_v2" value="{{ group.region.id|default:'' }}">
+                        
+                        <label class="mt-3 text-muted">وصف العنوان</label>
+                        <input type="text" name="location_url" class="form-control" value="{{ group.address }}">
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100 rounded-pill py-3 fw-bold mt-4 shadow-lg border-0" style="background: #2d3436;">حفظ التعديلات</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endif %}
+
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
+            <div class="bg-danger py-3 text-center text-white" style="border-radius: 25px 25px 0 0;">
+                <i class="bi bi-trash3-fill fs-2"></i>
+                <h6 class="fw-bold mb-0">إلغاء الطلب</h6>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <form action="{% url 'cancel_order' group.id %}" method="POST">
+                    {% csrf_token %}
+                    <textarea name="cancellation_reason" class="form-control mb-3 rounded-3 small" rows="3" placeholder="لماذا تريد الإلغاء؟" required></textarea>
+                    <button type="submit" class="btn btn-danger w-100 rounded-pill fw-bold mb-2">تأكيد الإلغاء</button>
+                    <button type="button" class="btn btn-light w-100 rounded-pill fw-bold" data-bs-dismiss="modal">تراجع</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    // بحث المناطق
+    function openRegUI() { document.getElementById('searchRegUI').style.display = 'block'; }
+    function filterRegUI() {
+        let v = document.getElementById('regSearchInput').value.toLowerCase();
+        document.querySelectorAll('.reg-option').forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(v) ? 'flex' : 'none';
+        });
+    }
+    function pickRegUI(id, name, price) {
+        document.getElementById('regSearchInput').value = name;
+        document.getElementById('hidden_reg_id_v2').value = id;
+        document.getElementById('searchRegUI').style.display = 'none';
+    }
+
+    // التحريك المطور
+    const dItem = document.getElementById("dragUIBox");
+    const dHandle = document.getElementById("dragUIHandle");
+    let dActive = false, dCurX, dCurY, dInitX, dInitY, dXOff = 0, dYOff = 0;
+
+    const dStart = (e) => {
+        if (e.type === "touchstart") { dInitX = e.touches[0].clientX - dXOff; dInitY = e.touches[0].clientY - dYOff; }
+        else { dInitX = e.clientX - dXOff; dInitY = e.clientY - dYOff; }
+        if (e.target === dHandle || dHandle.contains(e.target)) { 
+            dActive = true; 
+            dItem.style.width = dItem.offsetWidth + "px"; 
+        }
+    };
+    const dMove = (e) => {
+        if (dActive) {
+            e.preventDefault();
+            if (e.type === "touchmove") { dCurX = e.touches[0].clientX - dInitX; dCurY = e.touches[0].clientY - dInitY; }
+            else { dCurX = e.clientX - dInitX; dCurY = e.clientY - dInitY; }
+            dXOff = dCurX; dYOff = dCurY;
+            dItem.style.transform = `translate3d(${dCurX}px, ${dCurY}px, 0)`;
+        }
+    };
+    const dEnd = () => { dActive = false; };
+
+    dHandle.addEventListener("touchstart", dStart, false);
+    dHandle.addEventListener("mousedown", dStart, false);
+    document.addEventListener("touchend", dEnd, false);
+    document.addEventListener("mouseup", dEnd, false);
+    document.addEventListener("touchmove", dMove, false);
+    document.addEventListener("mousemove", dMove, false);
+
+    function refreshUI() {
+        document.getElementById('shipEditUI').style.display = document.getElementById('z2').checked ? 'block' : 'none';
+    }
+
+    function initWhatsApp() {
         const orderId = "{{ group.id }}";
         const fullName = "{{ group.first_name }} {{ group.last_name }}";
-        const phone = "{{ group.phone_number }}";
+        const phoneNum = "{{ group.phone_number }}";
         const total = "{{ group.total|floatformat:0 }}";
-        const currentUrl = window.location.href;
-        
-        const methodRaw = "{{ group.delivery_method }}";
-        let deliveryMethodStr = (methodRaw === 'delivery') ? "توصيل للموقع" : "من المحل";
-        
-        let message = `📦 *تأكيد طلب جديد رقم #${orderId}*\n\n`;
-        message += `👤 *الاسم:* ${fullName}\n`;
-        message += `📞 *الهاتف:* ${phone}\n`;
-        message += `🚚 *طريقة الاستلام:* ${deliveryMethodStr}\n`;
-        
-        if (methodRaw === 'delivery') {
-            const address = "{{ group.address }}";
-            message += `📍 *العنوان:* ${address}\n`;
+        const currentUrl = window.location.origin + window.location.pathname + window.location.search;
+        const region = "{{ group.region.name|default:'' }}";
+        const address = "{{ group.address|default:'' }}";
+        const deliveryText = region !== "" ? "توصيل للموقع" : "من المحل";
+
+        let msg = `📦 *تأكيد طلب جديد رقم #${orderId}*\n\n`;
+        msg += `👤 *الاسم:* ${fullName}\n`;
+        msg += `📞 *الهاتف:* ${phoneNum}\n`;
+        msg += `🚚 *طريقة الاستلام:* ${deliveryText}\n`;
+        if (region !== "") {
+            msg += `📍 *المنطقة:* ${region}\n`;
+            msg += `🏠 *العنوان:* ${address}\n`;
         }
+        msg += `\n💰 *الإجمالي:* ${total} د.ل\n`;
+        msg += `🔗 *رابط تتبع الطلب:* ${currentUrl}`;
 
-        message += `\n💰 *الإجمالي:* ${total} د.ل\n`;
-        message += `🔗 *رابط تتبع الطلب:* ${currentUrl}`;
+        const btn = document.getElementById('wa_global_btn');
+        if (btn) btn.href = `https://wa.me/218942950095?text=${encodeURIComponent(msg)}`;
+    }
 
-        const whatsappNumber = "218942950095"; 
-        const encodedMessage = encodeURIComponent(message);
-        document.getElementById('wa_confirm_btn').href = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-    });
+    window.addEventListener('load', initWhatsApp);
 </script>
-
 {% endblock %}

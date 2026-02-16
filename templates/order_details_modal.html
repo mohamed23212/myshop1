@@ -1,102 +1,118 @@
-<div class="p-4" dir="rtl">
-    <div class="row g-3 mb-4">
-        <div class="col-md-6">
-            <div class="p-4 border rounded-4 bg-light shadow-sm h-100">
-                <h6 class="fw-bold text-primary mb-3">
-                    <i class="bi bi-person-circle me-1"></i> معلومات العميل
-                </h6>
-                <div class="fs-5 fw-bold mb-2">{{ group.first_name }} {{ group.last_name }}</div>
-                <div class="mb-3">
-                    <i class="bi bi-telephone-fill text-muted me-2"></i> 
-                    <strong>الهاتف:</strong> {{ group.phone_number }}
-                </div>
-                <a href="https://wa.me/{{ group.phone_number }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3">
-                    <i class="bi bi-whatsapp"></i> مراسلة واتساب
+<div class="p-4" dir="rtl" style="font-size: 0.85rem;">
+    
+    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+
+    <div class="mb-4 pt-2">
+        <h6 class="text-danger fw-bold border-bottom pb-2 mb-2">👤 بيانات الزبون والدفع</h6>
+        
+        <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">الاسم:</span>
+            <span class="fw-bold">{{ group.first_name }} {{ group.last_name }}</span>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted">الهاتف:</span>
+            <div class="d-flex align-items-center gap-1">
+                <a href="https://wa.me/218{{ group.phone_number|slice:'1:' }}" target="_blank" class="btn btn-sm btn-success px-2 py-0 rounded-3" title="محادثة واتساب">
+                    <i class="bi bi-whatsapp"></i>
                 </a>
+                <button onclick="copyToClipboard('{{ group.phone_number }}')" class="btn btn-sm btn-light border px-2 py-0 rounded-3" title="نسخ الرقم">
+                    <i class="bi bi-copy"></i>
+                </button>
+                <span class="fw-bold ms-1" dir="ltr">{{ group.phone_number }}</span>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="p-4 border rounded-4 bg-light shadow-sm h-100">
-                {% if group.address and group.address != "" %}
-                    <h6 class="fw-bold text-danger mb-3">
-                        <i class="bi bi-geo-alt-fill me-1"></i> موقع التوصيل
-                    </h6>
-                    <p class="mb-3 text-dark"><strong>العنوان:</strong> {{ group.address }}</p>
-                    
-                    {% if "http" in group.address %}
-                        <a href="{{ group.address }}" target="_blank" class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm">
-                            📍 فتح الموقع على خرائط جوجل
-                        </a>
-                    {% else %}
-                        <div class="alert alert-warning py-2 small mb-0 text-center border-0">
-                            <i class="bi bi-exclamation-triangle"></i> العنوان نصي فقط (لا يوجد رابط خريطة)
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <h6 class="fw-bold text-success mb-3">
-                        <i class="bi bi-shop me-1"></i> طريقة الاستلام
-                    </h6>
-                    <div class="text-center py-3 bg-white rounded-4 border border-success border-opacity-25 shadow-sm">
-                        <i class="bi bi-box-arrow-in-down fs-1 text-success mb-2 d-block"></i>
-                        <strong class="fs-5 text-success d-block">استلام من المحل</strong>
-                        <p class="small text-muted mb-0 px-2">الزبون سيقوم بزيارة الفرع لاستلام الطلب</p>
-                    </div>
+        <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">طريقة الدفع:</span>
+            <span class="fw-bold text-success">
+                {% if group.payment_method == 'cash_on_delivery' %} 💵 كاش عند الاستلام
+                {% elif group.payment_method == 'bank_transfer' %} 🏦 حوالة مصرفية
+                {% else %} {{ group.payment_method }} {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <h6 class="text-danger fw-bold border-bottom pb-2 mb-2">🚚 معلومات التوصيل</h6>
+        <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">طريقة الاستلام:</span>
+            <span class="fw-bold">{% if group.region %} 🚚 توصيل للموقع {% else %} 🏪 استلام من المحل {% endif %}</span>
+        </div>
+
+        {% if group.region %}
+        <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">المنطقة:</span>
+            <span class="fw-bold text-dark">{{ group.region.name }}</span>
+        </div>
+        
+        {% if group.address %}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-muted">العنوان:</span>
+            <div class="d-flex align-items-center gap-1">
+                {% if group.location_url or 'http' in group.address %}
+                <a href="{{ group.location_url|default:group.address }}" target="_blank" class="btn btn-sm btn-outline-primary px-2 py-0 rounded-3" title="فتح الموقع">
+                    <i class="bi bi-geo-alt-fill"></i>
+                </a>
                 {% endif %}
+                <span class="fw-bold text-truncate" style="max-width: 150px;">{{ group.address }}</span>
             </div>
         </div>
+        {% endif %}
+        {% endif %}
     </div>
 
-    <div class="d-flex align-items-center justify-content-between mb-3 px-1">
-        <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-1"></i> المنتجات المطلوبة ({{ group.orders.count }})</h6>
-        <span class="badge bg-secondary">رقم الطلب #{{ group.id }}</span>
-    </div>
-
-    <div class="table-responsive border rounded-4 shadow-sm">
-        <table class="table align-middle text-center mb-0">
-            <thead class="table-dark">
+    <div class="mb-4">
+        <h6 class="text-danger fw-bold border-bottom pb-2 mb-2">🛒 المنتجات المطلوبة</h6>
+        <table class="table table-sm table-borderless" style="font-size: 0.8rem;">
+            <thead class="bg-light text-muted">
                 <tr>
-                    <th style="width: 80px;">الصورة</th>
-                    <th class="text-start">اسم المنتج</th>
-                    <th>الكمية</th>
-                    <th>السعر</th>
-                    <th>الإجمالي</th>
+                    <th>المنتج</th>
+                    <th class="text-center">الكمية</th>
+                    <th class="text-start">السعر</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in group.orders.all %}
-                <tr>
-                    <td>
-                        {% if item.product and item.product.image %}
-                            <img src="{{ item.product.image.url }}" class="rounded-3 border shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
-                        {% else %}
-                            <div class="bg-white border rounded d-flex align-items-center justify-content-center mx-auto" style="width: 60px; height: 60px;">
-                                <i class="bi bi-image text-muted fs-4"></i>
-                            </div>
-                        {% endif %}
-                    </td>
-                    <td class="text-start">
-                        <div class="fw-bold text-dark">{{ item.product_name }}</div>
-                        <span class="text-muted small">كود: #{{ item.product.id|default:item.id }}</span>
-                    </td>
-                    <td><span class="badge bg-light text-dark border fs-6 px-3">{{ item.quantity }}</span></td>
-                    <td class="text-muted">{{ item.price|floatformat:0 }} د.ل</td>
-                    <td class="fw-bold text-primary">{{ item.total|floatformat:0 }} د.ل</td>
+                <tr class="border-bottom">
+                    <td>{{ item.product_name }}</td>
+                    <td class="text-center">x{{ item.quantity }}</td>
+                    <td class="text-start fw-bold">{{ item.total|floatformat:0 }} د.ل</td>
                 </tr>
                 {% endfor %}
             </tbody>
-            <tfoot class="table-light">
-                <tr>
-                    <td colspan="4" class="text-end fw-bold fs-5 py-3 pe-4">إجمالي الفاتورة النهائية:</td>
-                    <td class="fw-bold text-success fs-4 py-3">{{ group.total|floatformat:0 }} د.ل</td>
-                </tr>
-            </tfoot>
         </table>
     </div>
 
-    <div class="mt-4 text-start">
-        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">
-            إغلاق النافذة
+    <div class="p-3 bg-light rounded-4 border">
+        <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">سعر الأصناف:</span>
+            <span>{{ group.subtotal|floatformat:0 }} د.ل</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1 text-danger">
+            <span class="text-muted">تكلفة التوصيل:</span>
+            <span>+{{ group.shipping_cost|floatformat:0 }} د.ل</span>
+        </div>
+        <div class="d-flex justify-content-between mt-2 pt-2 border-top fw-bold fs-5 text-primary">
+            <span>الإجمالي:</span>
+            <span>{{ group.total|floatformat:0 }} د.ل</span>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center">
+        <button type="button" class="btn btn-secondary w-100 rounded-pill py-2 fw-bold" data-bs-dismiss="modal">
+            إغلاق النافذة ❌
         </button>
     </div>
 </div>
+
+<script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            const Toast = Swal.mixin({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, timerProgressBar: true,
+            });
+            Toast.fire({ icon: 'success', title: 'تم نسخ الرقم' });
+        });
+    }
+</script>

@@ -12,11 +12,19 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['102.203.200.129', 'vaidoxtool.store', 'www.vaidoxtool.store', 'localhost', '127.0.0.1']
+
+# حماية الفورم وتسجيل دخول الأدمن (ضروري جداً)
+CSRF_TRUSTED_ORIGINS = [
+    'http://102.203.200.129',
+    'https://vaidoxtool.store',
+    'https://www.vaidoxtool.store',
+]
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
+    
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -44,6 +52,7 @@ AUTHENTICATION_BACKENDS = [
 # Middleware - إزالة وسيط Allauth
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -98,7 +107,8 @@ DEFAULT_CHARSET = 'utf-8'
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
+# تفعيل ضغط الملفات وكاشينج للتصميم (مهم جداً للسيرفر)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

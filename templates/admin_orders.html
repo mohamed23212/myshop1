@@ -3,31 +3,69 @@
 
 {% block content %}
 <style>
-    /* 1. التحكم في مكان ظهور المودال (أسفل الهيدر) */
-    .modal.fade .modal-dialog {
-        transform: translate(0, -50px);
-        transition: transform 0.3s ease-out;
-    }
-    .modal.show .modal-dialog {
-        transform: none;
-        margin-top: 70px; /* يظهر أسفل الهيدر */
-    }
+    /* 1. تحسين المودال */
+    .modal.show .modal-dialog { margin-top: 70px; }
 
-    /* ألوان شريط الحالة */
+    /* 2. ألوان شريط الحالة */
     .status-badge-pending { background-color: #ffc107; color: #000; }
     .status-badge-processing { background-color: #0d6efd; color: #fff; }
     .status-badge-delivered { background-color: #198754; color: #fff; }
     .status-badge-cancelled { background-color: #dc3545; color: #fff; }
     
-    .table-responsive { border-radius: 15px; overflow: hidden; }
-    .btn-sm { padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 500; }
+    .btn-sm { padding: 0.5rem 0.7rem; border-radius: 8px; font-weight: 500; font-size: 0.85rem; }
+
+    /* 3. التصميم المخصص للهاتف (Card View) */
+    @media (max-width: 768px) {
+        .table-responsive thead { display: none; }
+
+        .table-responsive table, 
+        .table-responsive tbody, 
+        .table-responsive tr, 
+        .table-responsive td { 
+            display: block; width: 100%; 
+        }
+
+        .table-responsive tr {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            background: #fff;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .table-responsive td {
+            text-align: right !important;
+            padding-right: 50% !important;
+            position: relative;
+            border: none !important;
+            padding-top: 8px; padding-bottom: 8px;
+            border-bottom: 1px solid #f8f9fa !important;
+        }
+
+        .table-responsive td::before {
+            content: attr(data-label);
+            position: absolute; right: 10px; width: 45%;
+            font-weight: bold; text-align: right; color: #6c757d;
+        }
+
+        .table-responsive td:last-child {
+            padding-right: 0 !important; text-align: center !important; border-bottom: none !important; margin-top: 10px;
+        }
+        .table-responsive td:last-child::before { display: none; }
+        
+        .action-buttons-wrap {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%;
+        }
+        .action-buttons-wrap .btn { flex: 1; min-width: 80px; }
+    }
 </style>
 
 <div class="container py-5" dir="rtl">
     <h2 class="mb-5 text-center fw-bold">📦 لوحة إدارة طلبات العملاء</h2>
 
-    <div class="table-responsive shadow-sm rounded-4">
-        <table class="table table-hover table-bordered text-center align-middle mb-0">
+    <div class="table-responsive shadow-sm rounded-4" style="background: transparent;">
+        <table class="table table-hover table-bordered text-center align-middle mb-0 bg-white">
             <thead class="table-dark">
                 <tr>
                     <th>رقم الطلب</th>
@@ -41,24 +79,23 @@
             <tbody>
                 {% for order in orders %}
                 <tr>
-                    <td class="fw-bold">#{{ order.id }}</td>
-                    <td>
+                    <td data-label="رقم الطلب" class="fw-bold">#{{ order.id }}</td>
+                    <td data-label="الزبون">
                         {% if order.user %}
                             {{ order.user.get_full_name|default:order.user.username }}
                         {% else %}
                             {{ order.first_name }} {{ order.last_name }} <span class="badge bg-secondary small">زبون</span>
                         {% endif %}
                     </td>
-                    <td class="fw-bold text-primary">{{ order.total|floatformat:0 }} د.ل</td>
-                    <td>
+                    <td data-label="الإجمالي" class="fw-bold text-primary">{{ order.total|floatformat:0 }} د.ل</td>
+                    <td data-label="حالة الطلب">
                         <span class="badge rounded-pill px-3 py-2 status-badge-{{ order.status|lower }}">
                             {{ order.get_status_display }}
                         </span>
                     </td>
-                    <td class="small">{{ order.created_at|date:"d-m-Y H:i" }}</td>
+                    <td data-label="التاريخ" class="small">{{ order.created_at|date:"d-m-Y H:i" }}</td>
                     <td>
-                        <div class="d-flex justify-content-center gap-1">
-                            
+                        <div class="action-buttons-wrap d-flex justify-content-center gap-1">
                             {% if order.status == 'PENDING' %}
                             <form method="POST" action="{% url 'admin_change_order_status' group_id=order.id new_status='PROCESSING' %}">
                                 {% csrf_token %}
@@ -86,16 +123,16 @@
                                 <i class="bi bi-eye"></i> عرض
                             </button>
 
-                                     <a href="{% url 'myorder' %}?phone={{ order.phone_number }}&token={{ order.secure_token }}&order_id={{ order.id }}" 
-   target="_blank" class="btn btn-sm btn-light border" title="فتح هذا الطلب بالتحديد">
-   🔗
-</a>
+                            <a href="{% url 'myorder' %}?phone={{ order.phone_number }}&token={{ order.secure_token }}&order_id={{ order.id }}" 
+                               target="_blank" class="btn btn-sm btn-light border" title="فتح هذا الطلب">
+                               🔗
+                            </a>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-muted py-5">لا توجد طلبات في النظام حالياً.</td>
+                    <td colspan="6" class="text-muted py-5 text-center">لا توجد طلبات في النظام حالياً.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -103,7 +140,7 @@
     </div>
 </div>
 
-{# مودال الإلغاء لكل طلب #}
+{# --- مودالات الإلغاء --- #}
 {% for order in orders %}
 <div class="modal fade" id="adminCancelModal-{{ order.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -128,16 +165,23 @@
 </div>
 {% endfor %}
 
-{# مودال عرض التفاصيل المحسن #}
+{# --- مودال عرض التفاصيل (المعدل بإضافة زر إغلاق سفلي) --- #}
 <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"> <div class="modal-content rounded-4 border-0 shadow-lg">
+            
             <div class="modal-header border-bottom bg-light py-2">
                 <h6 class="fw-bold mb-0">تفاصيل الطلب الكاملة</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-0" id="details-content">
-                </div>
+            
+            <div class="modal-body p-0" id="details-content"></div>
+            
+            <div class="modal-footer border-top bg-light p-2">
+                <button type="button" class="btn btn-secondary w-100 rounded-pill fw-bold" data-bs-dismiss="modal">
+                    إغلاق النافذة ❌
+                </button>
+            </div>
+
         </div>
     </div>
 </div>
