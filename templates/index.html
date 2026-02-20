@@ -70,7 +70,7 @@
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
     .cat-card:hover { transform: translateY(-8px); border-color: #e53935; }
-    .cat-img-box { width: 100%; height: 250px; overflow: hidden; background: #000; }
+    .cat-img-box { width: 100%; height: 220px; overflow: hidden; background: #000; } 
     .cat-img-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s; }
     .cat-info { background: #ffffff; padding: 20px 10px; text-align: center; }
     .cat-info h4 { margin: 0; color: #222; font-weight: 800; font-size: 1.25rem; }
@@ -114,12 +114,24 @@
     /* ===============================
        MOBILE
        =============================== */
+   /* ===============================
+       MOBILE
+       =============================== */
     @media (max-width: 768px) {
         .hero-wrapper { height: 300px !important; }
         .logo-container { top: 35%; }
         .logo-container img { width: 250px; }
         .footer-title { text-align: center; }
         .footer-info-item { text-align: center; }
+        
+        /* --- التعديل الجديد --- */
+        /* ارتفاع 160 بيكسل يعطي شكل مستطيل عريض ممتاز للهاتف */
+        .cat-img-box { 
+            height: 160px; 
+        }
+        /* تقليل الحواشي قليلاً لتوفير المساحة */
+        .cat-info { padding: 12px 5px; }
+        .cat-info h4 { font-size: 1.15rem; }
     }
 </style>
 {% endblock %}
@@ -147,25 +159,25 @@
         <div class="row g-4">
             <div class="col-6 col-md-3">
                 <a href="{% url 'shop' %}?category=2" class="cat-card">
-                    <div class="cat-img-box"><img src="{% static 'img/W.jpeg' %}"></div>
+                    <div class="cat-img-box"><img src="{% static 'img/W1.jpeg' %}"></div>
                     <div class="cat-info"><h4>أدوات كهربائية</h4></div>
                 </a>
             </div>
             <div class="col-6 col-md-3">
                 <a href="{% url 'shop' %}?category=7" class="cat-card">
-                    <div class="cat-img-box"><img src="{% static 'img/Wh.jpeg' %}"></div>
+                    <div class="cat-img-box"><img src="{% static 'img/WhatsApp1.jpeg' %}"></div>
                     <div class="cat-info"><h4>أدوات يدوية</h4></div>
                 </a>
             </div>
             <div class="col-6 col-md-3">
                 <a href="{% url 'shop' %}?category=5" class="cat-card">
-                    <div class="cat-img-box"><img src="{% static 'img/Whats.jpeg' %}"></div>
+                    <div class="cat-img-box"><img src="{% static 'img/Whats2.jpeg' %}"></div>
                     <div class="cat-info"><h4>طاقة شمسية</h4></div>
                 </a>
             </div>
             <div class="col-6 col-md-3">
                 <a href="{% url 'shop' %}?category=4" class="cat-card">
-                    <div class="cat-img-box"><img src="{% static 'img/What9.jpeg' %}"></div>
+                    <div class="cat-img-box"><img src="{% static 'img/What91.jpeg' %}"></div>
                     <div class="cat-info"><h4>معدات زراعية</h4></div>
                 </a>
             </div>
