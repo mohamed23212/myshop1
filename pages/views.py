@@ -295,18 +295,35 @@ def cancel_order(request, group_id):
     group = get_object_or_404(OrderGroup, id=group_id)
     if request.method == 'POST' and group.status == 'PENDING':
         group.status = 'CANCELLED'
-        # السطر الجديد: تسجيل أن الزبون هو من ألغى
-        group.cancellation_reason = 'إلغاء من قبل الزبون'
+        
+        # استلام السبب المكتوب من الزبون
+        reason = request.POST.get('cancellation_reason', '').strip()
+        if reason:
+            group.cancellation_reason = f"الزبون: {reason}"
+        else:
+            group.cancellation_reason = "الزبون: لم يذكر سبب"
+            
         group.save()
         messages.success(request, "تم إلغاء الطلب.")
     return redirect(f"/myorder/?phone={group.phone_number}&token={group.secure_token}&order_id={group.id}")
 
-# --- 6. لوحة الإدارة والإحصائيات ---
-
 @staff_member_required
-def admin_orders_view(request):
-    orders = OrderGroup.objects.all().order_by('-created_at')
-    return render(request, "admin_orders.html", {'orders': orders})
+def admin_change_order_status(request, group_id, new_status):
+    group = get_object_or_404(OrderGroup, id=group_id)
+    if request.method == 'POST':
+        group.status = new_status
+        
+        if new_status == 'CANCELLED':
+            # استلام السبب المكتوب من الإدارة
+            reason = request.POST.get('cancellation_reason', '').strip()
+            if reason:
+                group.cancellation_reason = f"الإدارة: {reason}"
+            else:
+                group.cancellation_reason = "الإدارة: لم يذكر سبب"
+                
+        group.save()
+        messages.success(request, f"تم تغيير الحالة إلى {group.get_status_display()}")
+    return redirect('admin_orders')
 
 @staff_member_required
 def order_detail_view(request, order_id):

@@ -80,12 +80,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for order in cancelled_orders %}
+                 {% for order in cancelled_orders %}
                     <tr>
                         <td class="fw-bold">#{{ order.id }}</td>
                         
                         <td>
-                            {% if order.cancellation_reason == 'إلغاء من قبل الإدارة' %}
+                            {% if "الإدارة:" in order.cancellation_reason %}
                                 <span class="badge bg-dark px-3 py-2 rounded-pill">الإدارة</span>
                             {% else %}
                                 {{ order.first_name }} {{ order.last_name }}
@@ -94,7 +94,7 @@
 
                         <td class="text-end px-4">
                             <span class="badge bg-danger-subtle text-danger p-2 rounded-3 fw-normal">
-                                {{ order.cancellation_reason|default:"لم يتم ذكر السبب" }}
+                                {{ order.cancellation_reason }}
                             </span>
                         </td>
                         <td class="small text-muted">{{ order.created_at|date:"d-m-Y" }}</td>
