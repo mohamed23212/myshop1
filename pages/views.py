@@ -295,6 +295,8 @@ def cancel_order(request, group_id):
     group = get_object_or_404(OrderGroup, id=group_id)
     if request.method == 'POST' and group.status == 'PENDING':
         group.status = 'CANCELLED'
+        # السطر الجديد: تسجيل أن الزبون هو من ألغى
+        group.cancellation_reason = 'إلغاء من قبل الزبون'
         group.save()
         messages.success(request, "تم إلغاء الطلب.")
     return redirect(f"/myorder/?phone={group.phone_number}&token={group.secure_token}&order_id={group.id}")
@@ -316,6 +318,10 @@ def admin_change_order_status(request, group_id, new_status):
     group = get_object_or_404(OrderGroup, id=group_id)
     if request.method == 'POST':
         group.status = new_status
+        # السطر الجديد: إذا اخترت "ملغي" من الإدارة، سجل السبب
+        if new_status == 'CANCELLED':
+            group.cancellation_reason = 'إلغاء من قبل الإدارة'
+        
         group.save()
         messages.success(request, f"تم تغيير الحالة إلى {group.get_status_display()}")
     return redirect('admin_orders')
