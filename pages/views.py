@@ -306,6 +306,17 @@ def cancel_order(request, group_id):
         group.save()
         messages.success(request, "تم إلغاء الطلب.")
     return redirect(f"/myorder/?phone={group.phone_number}&token={group.secure_token}&order_id={group.id}")
+# --- 6. لوحة الإدارة والإحصائيات ---
+
+@staff_member_required
+def admin_orders_view(request):
+    orders = OrderGroup.objects.all().order_by('-created_at')
+    return render(request, "admin_orders.html", {'orders': orders})
+
+@staff_member_required
+def order_detail_view(request, order_id):
+    group = get_object_or_404(OrderGroup.objects.prefetch_related('orders'), id=order_id)
+    return render(request, "order_details_modal.html", {'group': group})
 
 @staff_member_required
 def admin_change_order_status(request, group_id, new_status):
@@ -326,35 +337,39 @@ def admin_change_order_status(request, group_id, new_status):
     return redirect('admin_orders')
 
 @staff_member_required
-def order_detail_view(request, order_id):
-    group = get_object_or_404(OrderGroup.objects.prefetch_related('orders'), id=order_id)
-    return render(request, "order_details_modal.html", {'group': group})
-
-@staff_member_required
-def admin_change_order_status(request, group_id, new_status):
-    group = get_object_or_404(OrderGroup, id=group_id)
-    if request.method == 'POST':
-        group.status = new_status
-        # السطر الجديد: إذا اخترت "ملغي" من الإدارة، سجل السبب
-        if new_status == 'CANCELLED':
-            group.cancellation_reason = 'إلغاء من قبل الإدارة'
-        
-        group.save()
-        messages.success(request, f"تم تغيير الحالة إلى {group.get_status_display()}")
-    return redirect('admin_orders')
-
-@staff_member_required
 def statistics_view(request):
     revenue = OrderGroup.objects.filter(status='DELIVERED').aggregate(Sum('total'))['total__sum'] or 0
     top_products = Order.objects.values('product_name').annotate(total_sales=Sum('quantity')).order_by('-total_sales')[:5]
     
-    # 1. تجهيز بيانات المنتجات للرسم البياني
     p_names = [p['product_name'] for p in top_products]
     p_sales = [p['total_sales'] for p in top_products]
 
-    # 2. تجهيز بيانات الطلبات الملغاة (العدد الكلي وآخر 5 طلبات)
+    # جلب الطلبات الملغاة وترتيبها حسب "تاريخ الإلغاء" الفعلي
     total_cancelled = OrderGroup.objects.filter(status='CANCELLED').count()
-    cancelled_orders = OrderGroup.objects.filter(status='CANCELLED').order_by('-created_at')[:5]
+    recent_cancelled = OrderGroup.objects.filter(status='CANCELLED').order_by('-updated_at')[:5]
+    
+    # تنظيف البيانات قبل إرسالها للجدول
+    cancelled_orders_list = []
+    for order in recent_cancelled:
+        raw_reason = order.cancellation_reason or ""
+        
+        # تحديد من قام بالإلغاء والسبب الصافي
+        if raw_reason.startswith("الإدارة:"):
+            who_cancelled = "الإدارة"
+            clean_reason = raw_reason.replace("الإدارة:", "").strip()
+        elif raw_reason.startswith("الزبون:"):
+            who_cancelled = f"{order.first_name} {order.last_name}"
+            clean_reason = raw_reason.replace("الزبون:", "").strip()
+        else:
+            who_cancelled = f"{order.first_name} {order.last_name}"
+            clean_reason = raw_reason if raw_reason else "لم يتم ذكر السبب"
+            
+        cancelled_orders_list.append({
+            'id': order.id,
+            'who_cancelled': who_cancelled,
+            'reason': clean_reason,
+            'cancel_date': order.updated_at, # نرسل تاريخ الإلغاء
+        })
     
     status_counts = {
         'انتظار': OrderGroup.objects.filter(status='PENDING').count(),
@@ -368,14 +383,12 @@ def statistics_view(request):
         'total_orders': OrderGroup.objects.count(),
         'visits_count': Visit.objects.count(),
         
-        # تحويل البيانات إلى JSON لتعمل الرسوم البيانية بدون أخطاء
         'status_counts': json.dumps(status_counts),
         'product_names_for_chart': json.dumps(p_names),
         'product_sales_for_chart': json.dumps(p_sales),
         
-        # إرسال بيانات الطلبات الملغاة للجدول
         'total_cancelled_all': total_cancelled,
-        'cancelled_orders': cancelled_orders,
+        'cancelled_orders': cancelled_orders_list, 
         'top_products': top_products
     }
     return render(request, 'statistics.html', context)

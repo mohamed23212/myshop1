@@ -79,7 +79,7 @@ class OrderGroup(models.Model):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0) # إجمالي المنتجات + التوصيل
-    
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     payment_method = models.CharField(max_length=50, default='كاش')
     delivery_method = models.CharField(max_length=50, default='توصيل منزلي')
     cancellation_reason = models.TextField(null=True, blank=True, verbose_name="سبب الإلغاء")
