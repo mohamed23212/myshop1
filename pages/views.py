@@ -41,7 +41,11 @@ def account_page(request):
 # --- 2. الصفحات العامة ---
 
 def home(request):
-    Visit.objects.create(ip_address=request.META.get('REMOTE_ADDR'))
+    # حساب الزيارة مرة واحدة فقط لكل متصفح/جلسة
+    if not request.session.get('has_visited'):
+        Visit.objects.create(ip_address=request.META.get('REMOTE_ADDR'))
+        request.session['has_visited'] = True
+    
     return render(request, 'index.html')
 
 def about_page(request):
@@ -321,16 +325,34 @@ def statistics_view(request):
     revenue = OrderGroup.objects.filter(status='DELIVERED').aggregate(Sum('total'))['total__sum'] or 0
     top_products = Order.objects.values('product_name').annotate(total_sales=Sum('quantity')).order_by('-total_sales')[:5]
     
+    # 1. تجهيز بيانات المنتجات للرسم البياني
+    p_names = [p['product_name'] for p in top_products]
+    p_sales = [p['total_sales'] for p in top_products]
+
+    # 2. تجهيز بيانات الطلبات الملغاة (العدد الكلي وآخر 5 طلبات)
+    total_cancelled = OrderGroup.objects.filter(status='CANCELLED').count()
+    cancelled_orders = OrderGroup.objects.filter(status='CANCELLED').order_by('-created_at')[:5]
+    
+    status_counts = {
+        'انتظار': OrderGroup.objects.filter(status='PENDING').count(),
+        'تجهيز': OrderGroup.objects.filter(status='PROCESSING').count(),
+        'تم التسليم': OrderGroup.objects.filter(status='DELIVERED').count(),
+        'ملغي': total_cancelled,
+    }
+    
     context = {
         'total_revenue': revenue,
         'total_orders': OrderGroup.objects.count(),
         'visits_count': Visit.objects.count(),
-        'status_counts': {
-            'انتظار': OrderGroup.objects.filter(status='PENDING').count(),
-            'تجهيز': OrderGroup.objects.filter(status='PROCESSING').count(),
-            'تم التسليم': OrderGroup.objects.filter(status='DELIVERED').count(),
-            'ملغي': OrderGroup.objects.filter(status='CANCELLED').count(),
-        },
+        
+        # تحويل البيانات إلى JSON لتعمل الرسوم البيانية بدون أخطاء
+        'status_counts': json.dumps(status_counts),
+        'product_names_for_chart': json.dumps(p_names),
+        'product_sales_for_chart': json.dumps(p_sales),
+        
+        # إرسال بيانات الطلبات الملغاة للجدول
+        'total_cancelled_all': total_cancelled,
+        'cancelled_orders': cancelled_orders,
         'top_products': top_products
     }
     return render(request, 'statistics.html', context)
