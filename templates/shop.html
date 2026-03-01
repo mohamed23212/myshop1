@@ -118,15 +118,53 @@
         </div>
       {% endfor %}
     {% endif %}
-  </div>
+  </div> {% if products.has_other_pages %}
+  <nav aria-label="Page navigation" class="mt-5 mb-4">
+    <ul class="pagination justify-content-center flex-wrap gap-2">
+      
+      {% if products.has_previous %}
+        <li class="page-item">
+          <a class="page-link text-danger fw-bold rounded-pill shadow-sm border-0" 
+             href="?page={{ products.previous_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+             &laquo; السابق
+          </a>
+        </li>
+      {% endif %}
+
+      {% for num in products.paginator.page_range %}
+        {% if products.number == num %}
+          <li class="page-item active">
+            <span class="page-link bg-danger text-white fw-bold rounded-pill shadow-sm border-0 px-3">{{ num }}</span>
+          </li>
+        {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link text-dark fw-bold rounded-pill shadow-sm border-0 px-3" 
+               href="?page={{ num }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+               {{ num }}
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+
+      {% if products.has_next %}
+        <li class="page-item">
+          <a class="page-link text-danger fw-bold rounded-pill shadow-sm border-0" 
+             href="?page={{ products.next_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+             التالي &raquo;
+          </a>
+        </li>
+      {% endif %}
+
+    </ul>
+  </nav>
+  {% endif %}
+  
 </div>
 
 {% if messages %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         {% for message in messages %}
-            // تظهر الرسالة فقط إذا كانت رسالة نجاح (إضافة منتج)
-            // رسائل الحذف لن تظهر هنا لأنها تكون عادة info أو warning في السلة
             {% if message.tags == "success" %}
             Swal.fire({
                 icon: 'success',
@@ -166,6 +204,5 @@
     right: 10px !important;
   }
 }
-
 </style>
 {% endblock %}

@@ -86,6 +86,8 @@ class OrderGroup(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     secure_token = models.CharField(max_length=100, unique=True, null=True, blank=True)
     
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     def save(self, *args, **kwargs):
         if not self.secure_token:
             self.secure_token = uuid.uuid4().hex[:12] # إنشاء كود عشوائي من 12 حرف

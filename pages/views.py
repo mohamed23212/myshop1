@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.db.models import Count, Sum
 from django.contrib.auth import logout
 from django.http import JsonResponse
-
+from django.core.paginator import Paginator # ضفنا هذي المكتبة فوق
 # استيراد كافة الموديلات المطلوبة
 from .models import Product, Category, CartItem, Order, OrderGroup, CustomUser, Region, Visit
 
@@ -65,7 +65,14 @@ def shop_page(request):
     q = request.GET.get('q')
     if q: products = products.filter(name__icontains=q)
     
-    return render(request, 'shop.html', {'products': products, 'categories': categories})
+    # --- التعديل الجديد: نظام الصفحات ---
+    # تقسيم المنتجات إلى 12 منتج لكل صفحة
+    paginator = Paginator(products, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # نرسل page_obj بدلاً من products العادية
+    return render(request, 'shop.html', {'products': page_obj, 'categories': categories})
 
 # --- 3. نظام السلة الذكي ---
 
@@ -150,6 +157,9 @@ def place_order(request):
         delivery_method = request.POST.get('delivery_method')
         pay_method = request.POST.get('payment_method')
         
+        # --- الإضافة 1: استلام كود الخصم ---
+        applied_coupon = request.POST.get('applied_coupon', '')
+        
         # 2. جلب العناصر المختارة من السلة
         selected_items_str = request.POST.get('selected_items', '')
         selected_items_ids = [i for i in selected_items_str.split(',') if i]
@@ -162,15 +172,23 @@ def place_order(request):
         if not phone or not f_name:
             return JsonResponse({'success': False, 'message': 'يرجى ملء الاسم ورقم الهاتف'})
 
-        # 3. الحسابات المالية (صافي المنتجات + التوصيل)
+        # 3. الحسابات المالية
         subtotal = sum(item.get_total_price for item in selected_items)
+        
+        # --- الإضافة 2: حساب الخصم إذا كان الكود صحيحاً ---
+        discount_amount = 0
+        if applied_coupon == '3v4vrr':
+            discount_amount = Decimal(subtotal) * Decimal('0.20')  # خصم 20%
+            
+        items_total_after_discount = Decimal(subtotal) - discount_amount
+
+        # حساب التوصيل
         shipping_cost = 0
         region_obj = Region.objects.filter(id=region_id).first() if region_id else None
         
         if region_obj and delivery_method == 'delivery':
             shipping_cost = region_obj.shipping_price
         else:
-            # إذا كان استلام من المحل، نفرغ العنوان والمنطقة لضمان نظافة البيانات
             address = ""
             region_obj = None
 
@@ -182,7 +200,9 @@ def place_order(request):
             address=address, 
             region=region_obj, 
             shipping_cost=shipping_cost,
-            total=Decimal(subtotal) + Decimal(shipping_cost), 
+            subtotal=subtotal,                    # حفظ الصافي قبل الخصم
+            discount_amount=discount_amount,      # حفظ قيمة الخصم
+            total=items_total_after_discount + Decimal(shipping_cost), # الإجمالي الجديد
             payment_method=pay_method,
             status='PENDING'
         )
@@ -220,6 +240,10 @@ def place_order(request):
             reg_name = order_group.region.name if order_group.region else "غير محدد"
             msg += f"📍 *المنطقة:* {reg_name}\n"
             msg += f"🏠 *العنوان:* {address}\n"
+
+        # --- الإضافة 3: ظهور الخصم في الواتساب ---
+        if discount_amount > 0:
+            msg += f"\n🎉 *تم استخدام كود خصم 20%*"
 
         # إضافة الإجمالي والرابط في نهاية الرسالة
         msg += (

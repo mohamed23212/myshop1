@@ -257,11 +257,27 @@
             {% endfor %}
         </div>
 
-        <div class="billing-summary">
-            <div class="d-flex justify-content-between mb-2 small"><span class="text-muted fw-bold">صافي المنتجات</span><span class="fw-bold">{{ items_total|floatformat:0 }} د.ل</span></div>
-            <div class="d-flex justify-content-between mb-2 small text-success"><span class="fw-bold">خصم الكوبون</span><span class="fw-bold">0 د.ل</span></div>
-            <div class="d-flex justify-content-between border-top pt-2 mb-2 fw-bold small text-dark"><span>الإجمالي بعد الكوبون</span><span>{{ items_total|floatformat:0 }} د.ل</span></div>
-            <div class="d-flex justify-content-between small text-danger fw-bold"><span>تكلفة التوصيل</span><span>+ {{ group.shipping_cost|floatformat:0 }} د.ل</span></div>
+       <div class="billing-summary">
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="text-muted fw-bold">صافي المنتجات</span>
+                <span class="fw-bold">{{ group.subtotal|floatformat:0 }} د.ل</span>
+            </div>
+            
+            {% if group.discount_amount > 0 %}
+            <div class="d-flex justify-content-between mb-2 small text-success">
+                <span class="fw-bold">خصم الكوبون (20%)</span>
+                <span class="fw-bold">-{{ group.discount_amount|floatformat:0 }} د.ل</span>
+            </div>
+            <div class="d-flex justify-content-between border-top pt-2 mb-2 fw-bold small text-dark">
+                <span>الإجمالي بعد الخصم</span>
+                <span>{{ items_total|floatformat:0 }} د.ل</span>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between small text-danger fw-bold mt-2">
+                <span>تكلفة التوصيل</span>
+                <span>+ {{ group.shipping_cost|floatformat:0 }} د.ل</span>
+            </div>
         </div>
 
         <div class="black-footer-bar">

@@ -164,8 +164,8 @@
                             <span class="fw-bold"><span id="subtotal_display">0</span> د.ل</span>
                         </div>
                         <div id="discount_row" class="d-flex justify-content-between text-success fw-bold mb-2" style="display: none !important;">
-                            <span>الخصم:</span>
-                            <span>-10 د.ل</span>
+                            <span>الخصم (20%):</span>
+                            <span id="discount_amount_display">-0 د.ل</span>
                         </div>
                         <div class="d-flex justify-content-between fs-4 fw-bold text-dark mt-3">
                             <span>الإجمالي:</span>
@@ -254,28 +254,12 @@
                 <form id="orderForm">
                     {% csrf_token %}
                     <input type="hidden" name="selected_items" id="hidden_selected_items">
+                    <input type="hidden" name="applied_coupon" id="hidden_coupon_input">
                     
                     <div class="row g-3 mb-4">
                         <div class="col-6"><label class="small fw-bold mb-1">الاسم الأول *</label><input type="text" id="f_name_input" name="f_name" class="form-control" placeholder="الاسم"></div>
                         <div class="col-6"><label class="small fw-bold mb-1">اللقب *</label><input type="text" id="l_name_input" name="l_name" class="form-control" placeholder="الكنية"></div>
                         <div class="col-12"><label class="small fw-bold mb-1">رقم الهاتف (09X) *</label><input type="tel" id="p_phone" name="phone_number" class="form-control" placeholder="0912345678"></div>
-                    </div>
-
-                    <div id="ship_details" class="p-3 rounded-4 mb-4 border bg-light" style="display: none;">
-                        <div class="position-relative mb-3">
-                            <label class="small fw-bold text-danger mb-1">المنطقة والسكن *</label>
-                            <input type="text" id="regInput" class="form-control mb-2" placeholder="ابحث عن منطقتك..." onfocus="document.getElementById('regList').style.display='block'" onkeyup="filterRegs()">
-                            <div id="regList" class="shadow w-100 position-absolute" style="display: none; max-height: 150px; overflow-y: auto; z-index: 1000; background:white; border-radius: 10px;">
-                                {% for r in regions %}
-                                <div class="reg-item p-2 border-bottom" onclick="pickReg('{{ r.id }}', '{{ r.name }}', '{{ r.shipping_price }}')">
-                                    <span>{{ r.name }}</span> <span class="text-danger fw-bold float-start">+{{ r.shipping_price|floatformat:0 }}د</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <input type="hidden" name="region_id" id="h_reg_id">
-                        <input type="hidden" id="h_ship_price" value="0">
-                        <input type="text" id="address_input" name="location_url" class="form-control mt-2" placeholder="العنوان بالتفصيل او رابط موقعك">
                     </div>
 
                     <div class="mb-4">
@@ -286,6 +270,22 @@
                         </div>
                     </div>
 
+                    <div id="ship_details" class="p-3 rounded-4 mb-4 border bg-light" style="display: none;">
+                        <div class="position-relative mb-3">
+                            <label class="small fw-bold text-danger mb-1">المنطقة والسكن *</label>
+                            <input type="text" id="regInput" class="form-control mb-2" placeholder="ابحث واختر من القائمة..." onfocus="document.getElementById('regList').style.display='block'" onkeyup="filterRegs()" oninput="document.getElementById('h_reg_id').value=''; document.getElementById('h_ship_price').value='0'; updateSelectedTotal();">
+                            <div id="regList" class="shadow w-100 position-absolute" style="display: none; max-height: 150px; overflow-y: auto; z-index: 1000; background:white; border-radius: 10px;">
+                                {% for r in regions %}
+                                <div class="reg-item p-2 border-bottom" onclick="pickReg('{{ r.id }}', '{{ r.name }}', '{{ r.shipping_price }}')">
+                                    <span>{{ r.name }}</span> <span class="text-danger fw-bold float-start">+{{ r.shipping_price|floatformat:0 }}د</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <input type="hidden" name="region_id" id="h_reg_id">
+                        <input type="hidden" id="h_ship_price" value="0">
+                        <input type="text" id="address_input" name="location_url" class="form-control mt-2" placeholder="العنوان بالتفصيل او رابط الموقع">
+                        </div>
                     <div class="mb-4">
                         <label class="small fw-bold d-block mb-2">وسيلة الدفع</label>
                         <div class="d-flex gap-2">
@@ -302,7 +302,7 @@
                     </div>
 
                     <div class="alert alert-dark text-center fw-bold rounded-pill" id="final_tag">المجموع: 0 د.ل</div>
-                    <button type="button" class="btn btn-confirm-order mt-2 shadow-sm" onclick="finalOrderSubmit()">إتمام الشراء</button>
+                    <button type="button" class="btn btn-confirm-order mt-2 shadow-sm" onclick="finalOrderSubmit()">تاكيد الطلب</button>
                 </form>
             </div>
         </div>
@@ -312,6 +312,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     let globalDiscount = 0;
+    let couponApplied = false;
 
     function addToCartAjax(prodId) {
         Swal.fire({ title: 'جاري الإضافة...', didOpen: () => Swal.showLoading(), showConfirmButton: false, timer: 800 });
@@ -322,17 +323,30 @@
     }
 
     function toggleCoupon(e) {
-        e.stopPropagation();
+        if(e) e.stopPropagation();
         document.getElementById('coupon-link').style.display = 'none';
         document.getElementById('coupon-area').style.display = 'block';
     }
 
+    // إخفاء القوائم عند الضغط في أي مكان فارغ
     document.addEventListener('click', function(e) {
         const area = document.getElementById('coupon-area');
         const link = document.getElementById('coupon-link');
         const codeInput = document.getElementById('coupon_code');
-        if (area.style.display === 'block' && !area.contains(e.target) && e.target !== link) {
-            if(codeInput.value.trim() === "") { area.style.display = 'none'; link.style.display = 'inline-block'; }
+        if (area && area.style.display === 'block' && !area.contains(e.target) && e.target !== link) {
+            // لا نخفي المربع لو الكوبون مفعل عشان يقعد واضح للزبون
+            if(codeInput && codeInput.value.trim() === "" && !couponApplied) { 
+                area.style.display = 'none'; 
+                link.style.display = 'inline-block'; 
+            }
+        }
+
+        const regInput = document.getElementById('regInput');
+        const regList = document.getElementById('regList');
+        if (regList && regList.style.display === 'block') {
+            if (e.target !== regInput && !regList.contains(e.target)) {
+                regList.style.display = 'none';
+            }
         }
     });
 
@@ -343,6 +357,7 @@
         new bootstrap.Modal(document.getElementById('previewModal')).show();
     }
 
+    // تحديث الأسعار والمجموع الكامل
     function updateSelectedTotal() {
         let sub = 0; let html = ''; let ids = [];
         document.querySelectorAll('.item-checkbox:checked').forEach(cb => {
@@ -352,14 +367,66 @@
             ids.push(cb.value);
             html += `<div class="d-flex justify-content-between small border-bottom mb-2 pb-1"><span>${cb.dataset.name}</span> <span class="fw-bold">x${qty}</span></div>`;
         });
-        document.getElementById('summary-items-list').innerHTML = html || '<p class="text-muted small">يرجى اختيار منتجات</p>';
-        const isShip = document.querySelector('input[name="delivery_method"]:checked').value === 'delivery';
-        const ship = isShip ? parseFloat(document.getElementById('h_ship_price').value || 0) : 0;
-        let total = Math.max(0, (sub + ship) - globalDiscount);
-        document.getElementById('subtotal_display').innerText = Math.round(sub);
-        document.getElementById('final_total_display').innerText = Math.round(total);
-        document.getElementById('final_tag').innerText = "المجموع النهائي: " + Math.round(total) + " د.ل";
-        document.getElementById('hidden_selected_items').value = ids.join(',');
+        
+        let summaryList = document.getElementById('summary-items-list');
+        if (summaryList) {
+            summaryList.innerHTML = html || '<p class="text-muted small">يرجى اختيار منتجات</p>';
+        }
+        
+        // حساب قيمة الخصم بناءً على الكوبون
+        if (couponApplied) {
+            globalDiscount = sub * 0.20; // خصم 20%
+            let discountDisplay = document.getElementById('discount_amount_display');
+            if(discountDisplay) discountDisplay.innerText = `-${Math.round(globalDiscount)} د.ل`;
+        } else {
+            globalDiscount = 0;
+        }
+
+        const deliveryInput = document.querySelector('input[name="delivery_method"]:checked');
+        const isShip = deliveryInput ? deliveryInput.value === 'delivery' : false;
+        
+        const shipPriceInput = document.getElementById('h_ship_price');
+        const ship = isShip && shipPriceInput ? parseFloat(shipPriceInput.value || 0) : 0;
+        
+        let total = Math.max(0, (sub - globalDiscount) + ship);
+        
+        let subDisplay = document.getElementById('subtotal_display');
+        let finalDisplay = document.getElementById('final_total_display');
+        let finalTag = document.getElementById('final_tag');
+        
+        if(subDisplay) subDisplay.innerText = Math.round(sub);
+        if(finalDisplay) finalDisplay.innerText = Math.round(total);
+        if(finalTag) finalTag.innerText = "المجموع النهائي: " + Math.round(total) + " د.ل";
+        
+        let hiddenItems = document.getElementById('hidden_selected_items');
+        if(hiddenItems) hiddenItems.value = ids.join(',');
+        
+        let hiddenCoupon = document.getElementById('hidden_coupon_input');
+        if(hiddenCoupon) hiddenCoupon.value = couponApplied ? '3v4vrr' : '';
+    }
+
+    // دالة فحص كود الخصم (معدلة للحفظ في الذاكرة)
+    function checkCoupon(isAutoLoad = false) {
+        const codeInput = document.getElementById('coupon_code');
+        if(!codeInput) return;
+        const code = codeInput.value.trim();
+        const status = document.getElementById('coupon_status');
+        const discountRow = document.getElementById('discount_row');
+        
+        if (code === '3v4vrr') {
+            couponApplied = true;
+            sessionStorage.setItem('active_coupon', '3v4vrr'); // ⬅️ حفظ الكوبون في الذاكرة
+            if(status) status.innerHTML = '<span class="text-success">تم تطبيق خصم 20% بنجاح!</span>';
+            if(discountRow) discountRow.style.setProperty('display', 'flex', 'important');
+        } else {
+            couponApplied = false;
+            sessionStorage.removeItem('active_coupon'); // ⬅️ مسح الكوبون لو الكود غلط
+            if (!isAutoLoad || code !== '') {
+                if(status) status.innerHTML = '<span class="text-danger">كود الخصم غير صحيح أو منتهي</span>';
+            }
+            if(discountRow) discountRow.style.setProperty('display', 'none', 'important');
+        }
+        updateSelectedTotal();
     }
 
     function finalOrderSubmit() {
@@ -369,6 +436,10 @@
         const l_name = document.getElementById('l_name_input').value.trim();
         const agreeBox = document.getElementById('agreeBox');
         
+        const isDelivery = document.querySelector('input[name="delivery_method"]:checked').value === 'delivery';
+        const regId = document.getElementById('h_reg_id').value;
+        const address = document.getElementById('address_input').value.trim();
+
         if (!f_name || !l_name) {
             Swal.fire({ title: 'بيانات ناقصة', text: 'الرجاء كتابة الاسم واللقب', icon: 'error', confirmButtonColor: '#e53935' }); return;
         }
@@ -377,28 +448,25 @@
             Swal.fire({ title: 'خطأ في الهاتف', text: 'يرجى إدخال رقم ليبي يبدأ بـ 09(1,2,3,4) ويتكون من 10 أرقام', icon: 'error', confirmButtonColor: '#e53935' }); return;
         }
 
-        // --- تعديل الشروط والأحكام (بصرياً) ---
+        if (isDelivery) {
+            if (!regId) {
+                document.getElementById('regInput').value = ''; 
+                Swal.fire({ title: 'تنبيه', text: 'الرجاء اختيار منطقتك من القائمة المنسدلة بشكل صحيح.', icon: 'warning', confirmButtonColor: '#e53935' }); 
+                return;
+            }
+            if (!address) {
+                Swal.fire({ title: 'تنبيه', text: 'الرجاء كتابة تفاصيل العنوان لضمان وصول الطلبية إليك.', icon: 'warning', confirmButtonColor: '#e53935' }); 
+                return;
+            }
+        }
+
         if (!agreeBox.checked) {
             const container = document.getElementById('terms-container');
-            // التمرير للعنصر
             agreeBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // إضافة حركة الاهتزاز واللون الأحمر
             container.classList.add('shake-error');
-            
-            // إظهار تلميح Bootstrap فوق المربع
-            let tooltip = new bootstrap.Tooltip(agreeBox, {
-                title: "يجب وضع علامة هنا للمتابعة",
-                trigger: 'manual',
-                placement: 'top'
-            });
+            let tooltip = new bootstrap.Tooltip(agreeBox, { title: "يجب وضع علامة هنا للمتابعة", trigger: 'manual', placement: 'top' });
             tooltip.show();
-
-            // إزالة التأثير بعد 3 ثواني
-            setTimeout(() => {
-                container.classList.remove('shake-error');
-                tooltip.dispose();
-            }, 3000);
+            setTimeout(() => { container.classList.remove('shake-error'); tooltip.dispose(); }, 3000);
             return;
         }
 
@@ -411,20 +479,22 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                // ⬅️ مسح الكوبون من الذاكرة بعد نجاح الطلب باش ما يطبقش على طلب جديد بالغلط
+                sessionStorage.removeItem('active_coupon'); 
+
                 bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
-                
-                // حذف المنتجات من الشاشة
                 document.querySelectorAll('.item-checkbox:checked').forEach(cb => { cb.closest('.product-row').remove(); });
                 
-                // إذا فرغت السلة، نخفي العرض الكامل ونظهر عرض السلة الفارغة (دون تحديث الصفحة)
+                let fullView = document.getElementById('full-cart-view');
+                let emptyView = document.getElementById('empty-cart-view');
+                
                 if (document.querySelectorAll('.product-row').length === 0) {
-                    document.getElementById('full-cart-view').style.display = 'none';
-                    document.getElementById('empty-cart-view').style.display = 'block';
+                    if(fullView) fullView.style.display = 'none';
+                    if(emptyView) emptyView.style.display = 'block';
                 } else {
                     updateSelectedTotal();
                 }
 
-                // رسالة النجاح الثابتة (لا تختفي أبداً)
                 Swal.fire({
                     title: '✅ تم استلام طلبك بنجاح',
                     html: `
@@ -434,9 +504,7 @@
                             <a href="${data.order_url}" class="btn btn-outline-dark py-2"><i class="bi bi-eye"></i> رؤية الطلب</a>
                         </div>
                     `,
-                    showConfirmButton: false,
-                    allowOutsideClick: false, // يمنع الإغلاق بالضغط خارجاً
-                    allowEscapeKey: false     // يمنع الإغلاق بزر ESC
+                    showConfirmButton: false, allowOutsideClick: false, allowEscapeKey: false
                 });
             } else { Swal.fire('عذراً', data.message, 'error'); }
         });
@@ -448,19 +516,42 @@
         let val = (parseInt(input.value) || 1) + change;
         if (val >= 1 && val <= 15) { input.value = val; updateBtn.style.display = "inline-block"; }
     }
-    function checkCoupon() { /* ...نفس كود الكوبون... */ }
-    function toggleShipArea() { document.getElementById('ship_details').style.display = (document.querySelector('input[name="delivery_method"]:checked').value === 'delivery') ? 'block' : 'none'; updateSelectedTotal(); }
+    
+    function toggleShipArea() { 
+        const isDelivery = document.querySelector('input[name="delivery_method"]:checked').value === 'delivery';
+        document.getElementById('ship_details').style.display = isDelivery ? 'block' : 'none'; 
+        document.getElementById('store_pickup_msg').style.display = isDelivery ? 'none' : 'block';
+        updateSelectedTotal(); 
+    }
+    
     function pickReg(id, n, p) { document.getElementById('regInput').value = n; document.getElementById('h_reg_id').value = id; document.getElementById('h_ship_price').value = p; document.getElementById('regList').style.display = 'none'; updateSelectedTotal(); }
+    
     function filterRegs() { let v = document.getElementById('regInput').value.toLowerCase(); document.querySelectorAll('.reg-item').forEach(d => d.style.display = d.innerText.toLowerCase().includes(v) ? 'block' : 'none'); }
+    
     function showCheckoutModal() { if (document.querySelectorAll('.item-checkbox:checked').length === 0) return Swal.fire('تنبيه', 'اختر منتجاً', 'warning'); updateSelectedTotal(); new bootstrap.Modal(document.getElementById('orderModal')).show(); }
 
     const modal = document.getElementById("draggableOrderModal");
     const header = document.getElementById("orderModalHeader");
     let active = false; let xOff, yOff;
-    header.onmousedown = (e) => { active = true; xOff = e.clientX - modal.getBoundingClientRect().left; yOff = e.clientY - modal.getBoundingClientRect().top; modal.style.position = 'absolute'; modal.style.margin = '0'; };
-    document.onmousemove = (e) => { if (active) { modal.style.left = (e.clientX - xOff) + "px"; modal.style.top = (e.clientY - yOff) + "px"; } };
-    document.onmouseup = () => active = false;
+    if(header && modal) {
+        header.onmousedown = (e) => { active = true; xOff = e.clientX - modal.getBoundingClientRect().left; yOff = e.clientY - modal.getBoundingClientRect().top; modal.style.position = 'absolute'; modal.style.margin = '0'; };
+        document.onmousemove = (e) => { if (active) { modal.style.left = (e.clientX - xOff) + "px"; modal.style.top = (e.clientY - yOff) + "px"; } };
+        document.onmouseup = () => active = false;
+    }
 
-    document.addEventListener('DOMContentLoaded', updateSelectedTotal);
+    // ⬅️ عند تحميل الصفحة، نتحقق هل الكوبون محفوظ في الذاكرة؟
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedCoupon = sessionStorage.getItem('active_coupon');
+        if (savedCoupon === '3v4vrr') {
+            let codeInput = document.getElementById('coupon_code');
+            if(codeInput) {
+                codeInput.value = savedCoupon;
+                toggleCoupon(); // نظهر مربع الكوبون
+                checkCoupon(true); // نطبق الخصم في صمت (بدون رسالة خطأ لو مافيش)
+            }
+        } else {
+            updateSelectedTotal();
+        }
+    });
 </script>
 {% endblock %}
